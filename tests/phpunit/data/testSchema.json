@@ -1,0 +1,103 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "name": "Simple schema tester",
+    "type": "array",
+    "additionalProperties": false,
+    "properties": {
+        "boolean-prop1": {
+            "type": "boolean",
+            "default": false,
+            "description": "Sample boolean property whith default to false"
+        },
+        "boolean-prop2": {
+            "type": "boolean",
+            "default": true,
+            "description": "Sample boolean property whith default to true"
+        },
+        "boolean-prop3": {
+            "type": "boolean",
+            "description": "Sample boolean property whith no default"
+        },
+        "integer-prop1": {
+            "type": "integer",
+            "default": 10,
+            "description": "Sample integer property whith default"
+        },
+        "integer-prop2": {
+            "type": "integer",
+            "description": "Sample integer property whith no default"
+        },
+        "string-prop1": {
+            "type": [ "null", "string" ],
+            "default": null,
+            "description": "Sample string property with default to null" 
+        },        
+        "string-prop2": {
+            "type": [ "string", "null" ],
+            "default": "blah blah",
+            "description": "Sample string property with default to 'blah blah'" 
+        },        
+        "string-prop3": {
+            "type": [ "string", "null" ],
+            "description": "Sample string property with no default" 
+        },        
+        "subtree1": {
+            "type": "array",
+            "description": "subtree1 options",
+            "properties": {
+                "integer-prop1": {
+                    "type": "integer",
+                    "description": "Sample integer property with default to 0",
+                    "default": 0
+                },
+                "string-prop1": {
+                    "type": "string",
+                    "description": "Sample string property with enum and default to 'info'",
+                    "default": "info",
+                    "enum": [ "emergency", "alert", "critical", "error", "warning", "notice", "info", "debug" ]
+                },
+                "string-prop2": {
+                    "type": "string",
+                    "description": "Sample string property with enum and no default",
+                    "enum": [ "emergency", "alert", "critical", "error", "warning", "notice", "info", "debug" ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "subtree2": {
+            "type": "array",
+            "description": "subtree2 options",
+            "properties": {
+                "list1": {
+                    "type": "array",
+                    "default": [],
+                    "description": "list of things",
+                    "minProperties": 0,
+                    "additionalProperties": {
+                        "type": [ "string", "boolean", "integer" ],
+                        "description": "Variable value"
+                    }
+                },
+                "boolan-prop": {
+                    "type": "boolean",
+                    "description": "should we do this ?",
+                    "default": false
+                },
+                "subsubtree": {
+                    "type": "array",
+                    "description": "subsubtree options",
+                    "properties": {
+                        "string": {
+                            "type": "string",
+                            "description": "Sample string property / no default"
+                        },
+                        "boolan-prop": {
+                            "type": "boolean",
+                            "description": "Boolean with no default"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

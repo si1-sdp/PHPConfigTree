@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "name": "Simple schema tester",
+    "type": "array",
+    "additionalProperties": false,
+    "properties": {
+        "boolean-prop": {
+            "type": "boolean",
+            "default": false,
+            "description": "Sample boolean property whith default to false"
+        },
+        "object-prop": {
+            "type": "foo",
+            "description": "Sample object property - not handled by getDefault",
+            "default": 3
+        }
+    }
+}
