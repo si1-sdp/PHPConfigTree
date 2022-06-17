@@ -33,5 +33,10 @@
 		"psr-4": {
 			"DgfipSI1\\ConfigTreeTests\\": "tests/phpunit/src"
 		}
-	}
+	},
+        "scripts": {
+            "test": "vendor/bin/phpunit",
+            "phpstan": "vendor/bin/phpstan",
+            "phpcs": "vendor/bin/phpcs"
+        }
 }
