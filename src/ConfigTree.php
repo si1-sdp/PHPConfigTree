@@ -166,7 +166,7 @@ class ConfigTree
      *
      * @return self
      */
-    public function set(string $name, mixed $value, $check = true)
+    public function set($name, $value, $check = true)
     {
         $branch = &$this->options;
         $nodes = explode('.', $name);
