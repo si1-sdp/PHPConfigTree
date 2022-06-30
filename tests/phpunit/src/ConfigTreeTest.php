@@ -56,7 +56,7 @@ class ConfigurationTreeTest extends TestCase
         }
         $this->assertEquals("Bad schema : expecting attributes for property foo", $msg);
         /** test with options schemas */
-        $ct = new ConfigTree($this->testDataDir."testSchema.yaml", ['subtree2.list1' => ['a', 'b', 'c']]);
+        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.yaml", ['subtree2.list1' => ['a', 'b', 'c']]);
         /** @var array<mixed> $list */
         $list = $ct->get('subtree2.list1');
         $this->assertEquals('b', $list[1]);

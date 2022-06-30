@@ -31,7 +31,7 @@ class ConfigTree
      *
      * @return void
      */
-    public function __construct($schemaFile, $options = [])
+    public function __construct($schemaFile)
     {
         try {
             $schemaFileContent = file_get_contents($schemaFile);
@@ -48,10 +48,17 @@ class ConfigTree
                 break;
         }
         $this->options = $this->getDefaultOptions();
-        if ($options) {
-            $this->merge($options);
-        }
     }
+    /**
+     * 
+     */
+    public static function fromArray($schemaFile, $options) {
+        $instance = new self($schemaFile);
+        $instance->merge($options);
+        return $instance;
+    }
+
+
     /**
      * Undocumented function
      *
