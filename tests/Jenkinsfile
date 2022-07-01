@@ -41,18 +41,13 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
-    environment {
-        PIC_DOMAIN = URI.create(env.JOB_URL).getHost().replaceFirst('jenkins.','')
-    }
     agent {
-        docker { 
-            image 'rocky-php7.4' 
-        }
+      docker { image 'rocky-php7.4' }
     }
     stages {
         stage('Test') {
             steps {
-                sh 'php --version'
+                    sh 'php --version'
             }
         }
     }
