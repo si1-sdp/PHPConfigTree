@@ -56,7 +56,7 @@ pipeline {
           }
         }
         steps {
-            sh 'composer install --prefer-stable'
+            sh 'composer update --prefer-stable'
             sh 'composer run phpcs'
             sh 'composer run phpstan'
             sh 'composer run test'
@@ -70,7 +70,7 @@ pipeline {
           }
         }
         steps {
-            sh 'composer install --prefer-lowest'
+            sh 'composer update --prefer-lowest'
             sh 'composer run phpcs'
             sh 'composer run phpstan'
             sh 'composer run test'
