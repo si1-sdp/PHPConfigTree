@@ -71,8 +71,6 @@ pipeline {
         }
         steps {
             sh 'composer update --prefer-lowest'
-            sh 'composer run phpcs'
-            sh 'composer run phpstan'
             sh 'composer run test'
         }
       }
@@ -99,8 +97,6 @@ pipeline {
         }
         steps {
             sh 'composer update --prefer-lowest'
-            sh 'composer run phpcs'
-            sh 'composer run phpstan'
             sh 'composer run test'
         }
       }
