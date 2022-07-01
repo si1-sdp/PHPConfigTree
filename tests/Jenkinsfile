@@ -41,6 +41,7 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
+  agent none
   stages {
       agent { 
         docker {
