@@ -41,6 +41,11 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
+  environment {
+    no_proxy=.dgfip,.impots,.rie.gouv.fr,100.67.225.0/24
+    http_proxy=http://10.154.68.7:8080
+    https_proxy=http://10.154.68.7:8080
+  }
   agent none
   stages {
       stage('Tests linter on php7.4') {
