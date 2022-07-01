@@ -41,16 +41,19 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
-  agent { 
-    docker {
-  		label 'rocky8'
-      image 'php74'
-    }
-  }
   stages {
-      stage('Test') {
+      agent { 
+        docker {
+          label 'rocky8'
+          image 'php74'
+        }
+      }
+      stage('Tests linter on php7.4') {
           steps {
-                  sh 'php --version'
+              sh 'composer install'
+              sh 'composer run phpcs'
+              sh 'composer run phpstan'
+
           }
       }
   }
