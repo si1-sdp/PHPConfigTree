@@ -1,0 +1,61 @@
+
+def installAnsible() {
+  echo "Install python modules"
+  // use pic virtual env : 
+  // see https://forge.dgfip.finances.rie.gouv.fr/dgfip/soda/cloud/pic/cloud-appliance-ci/-/blob/0.9.21/docs/python.md
+  withPythonEnv('python3.8') {
+    sh '''
+      pip install ansible==5.8.0 molecule ansible-lint==5.4.0
+      mkdir -p /home/cloudadm/.ansible/roles
+      ln -s $PWD /home/cloudadm/.ansible/roles/php
+    '''
+  }
+}
+def runMoleculeTest(scenario) {
+  echo "Launch molecule tests"
+  withPythonEnv('python3.8') {
+    sh """
+      molecule test -s ${scenario}
+    """
+  }
+}
+def printPhpVersion() {
+  PHP_VERSION = sh (
+    script: 'php -v | head -1  | awk \'{print $2}\'',
+    returnStdout: true
+  ).trim()
+  echo "PHP VERSION INSTALLED : ${PHP_VERSION}"
+}
+
+// see https://forge.dgfip.finances.rie.gouv.fr/dgfip/soda/cloud/pic/cloud-appliance-ci/-/blob/0.9.21/docs/notifications.md
+def notifyStatusChangeViaEmail(buildStatus) {
+  def toJm   = "jean-marie.gervais@dgfip.finances.gouv.fr"
+  def toTeam = "bureau.si1-sdp@dgfip.finances.gouv.fr"
+  if ( env.JOB_NAME.endsWith('_main')) {
+    emailext (
+        to: "$toJm,$toTeam",
+        subject: "Job '${env.JOB_NAME}' - ${buildStatus}",
+        body: "Job ${env.JOB_NAME} / build #${env.BUILD_NUMBER} :  ${buildStatus}\nSee ${env.BUILD_URL} for more details"
+    )
+  }
+}
+
+pipeline {
+    environment {
+        PIC_DOMAIN = URI.create(env.JOB_URL).getHost().replaceFirst('jenkins.','')
+        DOCKER_PULL_REGISTRY_URL = "https://nexus-docker-pull.${PIC_DOMAIN}"
+    }
+    agent {
+        docker { 
+            image 'rocky-php7.4' 
+            registryUrl env.DOCKER_PULL_REGISTRY_URL
+        }
+    }
+    stages {
+        stage('Test') {
+            steps {
+                sh 'php --version'
+            }
+        }
+    }
+}
