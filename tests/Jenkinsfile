@@ -46,13 +46,15 @@ pipeline {
     http_proxy   = "http://10.154.68.7:8080"
     https_proxy  = "http://10.154.68.7:8080"
   }
-  agent none
+  agent {
+      label 'rocky8'
+  }
   stages {
       stage('Tests on php7.4 --prefer stable') {
         agent { 
           docker {
-            label 'rocky8'
             image 'rocky-php7.4'
+            reuseNode true
           }
         }
         steps {
@@ -65,8 +67,8 @@ pipeline {
       stage('Tests on php7.4 --prefer-lowest') {
         agent { 
           docker {
-            label 'rocky8'
             image 'rocky-php7.4'
+            reuseNode true
           }
         }
         steps {
@@ -77,8 +79,8 @@ pipeline {
       stage('Tests on php8.1 --prefer stable') {
         agent { 
           docker {
-            label 'rocky8'
             image 'rocky-php8.1'
+            reuseNode true
           }
         }
         steps {
@@ -91,8 +93,8 @@ pipeline {
       stage('Tests on php8.1 --prefer-lowest') {
         agent { 
           docker {
-            label 'rocky8'
             image 'rocky-php8.1'
+            reuseNode true
           }
         }
         steps {
