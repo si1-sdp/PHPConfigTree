@@ -51,15 +51,7 @@ pipeline {
             sh 'composer run phpstan'
             sh 'composer run test'
             junit 'tests/results/*.xml'
-            script {
-              projectKey        = "-Dsonar.projectKey=${project}"
-              sources           = "-Dsonar.sources=${workspace}/src"
-              testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
-              coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
-              withSonarQubeEnv('Sonarqube-server') {
-                 sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
-              }
-            }
+            stash name: 'tests' 
          }
       }
       stage('Tests on php8.1 --prefer-lowest') {
@@ -72,6 +64,20 @@ pipeline {
         steps {
             sh 'composer update --prefer-lowest'
             sh 'composer run test'
+        }
+      }
+      stage() {
+        steps {
+          unstash name: 'tests'
+          script {
+            projectKey        = "-Dsonar.projectKey=${project}"
+            sources           = "-Dsonar.sources=${workspace}/src"
+            testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
+            coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
+            withSonarQubeEnv('Sonarqube-server') {
+                sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
+            }
+          }
         }
       }
   }
