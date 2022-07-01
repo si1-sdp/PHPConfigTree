@@ -44,7 +44,7 @@ pipeline {
   agent { 
     docker {
   		label 'rocky8'
-      image 'rocky-php7.4 '
+      image 'php74 '
     }
   }
   stages {
