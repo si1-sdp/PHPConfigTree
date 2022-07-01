@@ -48,17 +48,32 @@ pipeline {
   }
   agent none
   stages {
-      stage('Tests linter on php7.4') {
+      stage('Tests on php7.4 --prefer stable') {
         agent { 
           docker {
             label 'rocky8'
-            image 'php74'
+            image 'rocky-php7.4'
           }
         }
         steps {
-            sh 'composer install'
+            sh 'composer install --prefer-stable'
             sh 'composer run phpcs'
             sh 'composer run phpstan'
+            sh 'composer run test'
+        }
+      }
+      stage('Tests on php7.4 --prefer-lowest') {
+        agent { 
+          docker {
+            label 'rocky8'
+            image 'rocky-php7.4'
+          }
+        }
+        steps {
+            sh 'composer install --prefer-lowest'
+            sh 'composer run phpcs'
+            sh 'composer run phpstan'
+            sh 'composer run test'
         }
       }
   }
