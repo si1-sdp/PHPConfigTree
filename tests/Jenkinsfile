@@ -15,7 +15,7 @@ pipeline {
       stage('Tests on php7.4 --prefer stable') {
         agent { 
           docker {
-            image 'rocky-php7.4'
+            image 'php74'
             reuseNode true
           }
         }
@@ -29,7 +29,7 @@ pipeline {
       stage('Tests on php7.4 --prefer-lowest') {
         agent { 
           docker {
-            image 'rocky-php7.4'
+            image 'php74'
             reuseNode true
           }
         }
@@ -41,7 +41,7 @@ pipeline {
       stage('Tests on php8.1 --prefer stable') {
         agent { 
           docker {
-            image 'rocky-php8.1'
+            image 'php81'
             reuseNode true
           }
         }
@@ -57,7 +57,7 @@ pipeline {
       stage('Tests on php8.1 --prefer-lowest') {
         agent { 
           docker {
-            image 'rocky-php8.1'
+            image 'php81'
             reuseNode true
           }
         }
