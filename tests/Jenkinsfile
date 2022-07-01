@@ -42,7 +42,7 @@ def notifyStatusChangeViaEmail(buildStatus) {
 
 pipeline {
     agent {
-  		label rocky8
+  		label 'rocky8'
     }
 
     stages {
