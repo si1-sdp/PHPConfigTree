@@ -5,6 +5,8 @@ pipeline {
     http_proxy   = "http://10.154.68.7:8080"
     https_proxy  = "http://10.154.68.7:8080"
     project      = "PHPConfigTree"
+    scannerHome  = tool 'sonar-scanner'
+    XDEBUG_MODE  = "coverage"
   }
   agent {
       label 'rocky8'
