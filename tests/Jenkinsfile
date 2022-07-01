@@ -49,12 +49,14 @@ pipeline {
             sh 'composer run phpstan'
             sh 'composer run test'
             junit 'tests/results/*.xml'
-            projectKey        = "-Dsonar.projectKey=${project}"
-            sources           = "-Dsonar.sources=${workspace}/src"
-            testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
-            coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
-            withSonarQubeEnv('Sonarqube-server') {
+            script {
+              projectKey        = "-Dsonar.projectKey=${project}"
+              sources           = "-Dsonar.sources=${workspace}/src"
+              testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
+              coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
+              withSonarQubeEnv('Sonarqube-server') {
                  sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.javascript.skip=true -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
+              }
             }
          }
       }
