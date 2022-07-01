@@ -41,16 +41,17 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
-  docker {
+  agent { 
+    docker {
   		label 'rocky8'
       image 'rocky-php7.4 '
     }
-
-    stages {
-        stage('Test') {
-            steps {
-                    sh 'php --version'
-            }
-        }
-    }
+  }
+  stages {
+      stage('Test') {
+          steps {
+                  sh 'php --version'
+          }
+      }
+  }
 }
