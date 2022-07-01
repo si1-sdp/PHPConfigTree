@@ -26,8 +26,7 @@ class ConfigTree
     /**
      * Constructor
      *
-     * @param string              $schemaFile
-     * @param array<string,mixed> $options
+     * @param string $schemaFile
      *
      * @return void
      */
@@ -50,11 +49,18 @@ class ConfigTree
         $this->options = $this->getDefaultOptions();
     }
     /**
-     * 
+     * Build ConfigTree Object from flat array
+     *
+     * @param string              $schemaFile
+     * @param array<string,mixed> $options
+     *
+     * @return self
      */
-    public static function fromArray($schemaFile, $options) {
+    public static function fromArray($schemaFile, $options)
+    {
         $instance = new self($schemaFile);
         $instance->merge($options);
+
         return $instance;
     }
 
