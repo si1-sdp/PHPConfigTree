@@ -41,7 +41,10 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
-    agent any
+    agent {
+  		label rocky8
+    }
+
     stages {
         stage('Test') {
             environment {
