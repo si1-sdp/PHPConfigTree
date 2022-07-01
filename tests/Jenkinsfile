@@ -42,7 +42,7 @@ def notifyStatusChangeViaEmail(buildStatus) {
 
 pipeline {
     agent {
-      docker { image 'rocky-php7.4' }
+      any
     }
     stages {
         stage('Test') {
@@ -50,7 +50,7 @@ pipeline {
                   HOME="."
             }
             steps {
-                    sh 'php --version'
+                    sh 'docker run --rm rocky-php7.4 php --version'
             }
         }
     }
