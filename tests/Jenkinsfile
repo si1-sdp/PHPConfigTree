@@ -76,5 +76,33 @@ pipeline {
             sh 'composer run test'
         }
       }
+      stage('Tests on php8.1 --prefer stable') {
+        agent { 
+          docker {
+            label 'rocky8'
+            image 'rocky-php8.1'
+          }
+        }
+        steps {
+            sh 'composer update --prefer-stable'
+            sh 'composer run phpcs'
+            sh 'composer run phpstan'
+            sh 'composer run test'
+        }
+      }
+      stage('Tests on php8.1 --prefer-lowest') {
+        agent { 
+          docker {
+            label 'rocky8'
+            image 'rocky-php8.1'
+          }
+        }
+        steps {
+            sh 'composer update --prefer-lowest'
+            sh 'composer run phpcs'
+            sh 'composer run phpstan'
+            sh 'composer run test'
+        }
+      }
   }
 }
