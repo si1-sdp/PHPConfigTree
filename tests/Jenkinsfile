@@ -1,50 +1,10 @@
 
-def installAnsible() {
-  echo "Install python modules"
-  // use pic virtual env : 
-  // see https://forge.dgfip.finances.rie.gouv.fr/dgfip/soda/cloud/pic/cloud-appliance-ci/-/blob/0.9.21/docs/python.md
-  withPythonEnv('python3.8') {
-    sh '''
-      pip install ansible==5.8.0 molecule ansible-lint==5.4.0
-      mkdir -p /home/cloudadm/.ansible/roles
-      ln -s $PWD /home/cloudadm/.ansible/roles/php
-    '''
-  }
-}
-def runMoleculeTest(scenario) {
-  echo "Launch molecule tests"
-  withPythonEnv('python3.8') {
-    sh """
-      molecule test -s ${scenario}
-    """
-  }
-}
-def printPhpVersion() {
-  PHP_VERSION = sh (
-    script: 'php -v | head -1  | awk \'{print $2}\'',
-    returnStdout: true
-  ).trim()
-  echo "PHP VERSION INSTALLED : ${PHP_VERSION}"
-}
-
-// see https://forge.dgfip.finances.rie.gouv.fr/dgfip/soda/cloud/pic/cloud-appliance-ci/-/blob/0.9.21/docs/notifications.md
-def notifyStatusChangeViaEmail(buildStatus) {
-  def toJm   = "jean-marie.gervais@dgfip.finances.gouv.fr"
-  def toTeam = "bureau.si1-sdp@dgfip.finances.gouv.fr"
-  if ( env.JOB_NAME.endsWith('_main')) {
-    emailext (
-        to: "$toJm,$toTeam",
-        subject: "Job '${env.JOB_NAME}' - ${buildStatus}",
-        body: "Job ${env.JOB_NAME} / build #${env.BUILD_NUMBER} :  ${buildStatus}\nSee ${env.BUILD_URL} for more details"
-    )
-  }
-}
-
 pipeline {
   environment {
     no_proxy     = ".dgfip,.impots,.rie.gouv.fr,100.67.225.0/24"
     http_proxy   = "http://10.154.68.7:8080"
     https_proxy  = "http://10.154.68.7:8080"
+    project      = "PHPConfigTree"
   }
   agent {
       label 'rocky8'
@@ -88,7 +48,15 @@ pipeline {
             sh 'composer run phpcs'
             sh 'composer run phpstan'
             sh 'composer run test'
-        }
+            junit 'tests/results/*.xml'
+            projectKey        = "-Dsonar.projectKey=${project}"
+            sources           = "-Dsonar.sources=${workspace}/src"
+            testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
+            coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
+            withSonarQubeEnv('Sonarqube-server') {
+                 sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.javascript.skip=true -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
+            }
+         }
       }
       stage('Tests on php8.1 --prefer-lowest') {
         agent { 
