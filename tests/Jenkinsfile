@@ -41,9 +41,6 @@ def notifyStatusChangeViaEmail(buildStatus) {
 }
 
 pipeline {
-    agent {
-      any
-    }
     stages {
         stage('Test') {
             environment {
