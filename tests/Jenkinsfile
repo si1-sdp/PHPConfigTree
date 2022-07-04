@@ -43,9 +43,7 @@ pipeline {
                 }
                 sh 'composer run test'
               }
-              catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
-                  junit testResults: 'tests/results/*.xml', skipPublishingChecks: true
-              }
+              junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
             }
