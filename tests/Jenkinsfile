@@ -58,7 +58,7 @@ pipeline {
               lock( "synchronous-matrix" )
             }
             steps {
-              buildAndTest(image: "${IMAGE}", prefer: "${PREFERED_PACKAGES}")
+              buildAndTest("$IMAGE", "$PREFERED_PACKAGES")
               junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
