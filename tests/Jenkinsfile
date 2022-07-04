@@ -36,13 +36,17 @@ pipeline {
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
               catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpcs   || true' 
                 script {
-                  def result = sh(returnStdout: true, script: '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true')
-                  echo "$result"
-                  writeFile(file: "tests/results/phpstan.xml", text: result)
+                  if ( env.PREFERED_PACKAGES == "stable" ) {
+                    sh 'composer run phpcs' 
+                    def result = sh(returnStdout: true, script: 'composer run phpstan')
+                    writeFile(file: "tests/results/phpstan.xml", text: result)
+                  } else {
+                    sh 'rm -f tests/results/phpstan.xml'
+                  }
+                  sh 'composer run test'
+
                 }
-                sh 'composer run test'
               }
               junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
