@@ -1,3 +1,4 @@
+
 def buildAndTest(String image, String prefer) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
   sh 'rm -f tests/results/phpstan.xml'
