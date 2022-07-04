@@ -37,11 +37,12 @@ pipeline {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
               script {
                 sh 'rm -f tests/results/phpstan.xml'
+                sh 'rm -f tests/results/phpstan.xml'
                 if ( env.PREFERED_PACKAGES == "stable" ) {
                   try {
-                      sh 'composer run phpcs' 
+                    sh "composer run phpcs > ${workspace}/tests/results/phpstan.xml"
                   } catch (err) {
-                    echo "FAILED IN PHPCS Step"
+                    echo "PHPCS FAILED"
                   }
                   try {
                     sh "composer run phpstan > ${workspace}/tests/results/phpstan.xml"
@@ -50,9 +51,12 @@ pipeline {
                     //writeFile(file: "tests/results/phpstan.xml", text: $result)
                   }
                 }
-              }
-              catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                try {
                   sh 'composer run test'
+                } catch (err) {
+                  echo "FAILED IN PHPUNIT"
+                }
+
               }
               junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
