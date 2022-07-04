@@ -31,7 +31,7 @@ pipeline {
         stages {
           stage('Build') {
             steps {
-              sh "composer update --prefer-$PREFERED_PACKAGES"
+              sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
             }
           }
           stage('lint') {
@@ -39,6 +39,7 @@ pipeline {
               environment name: 'PREFERED_PACKAGES', value: 'stable'
             }
             steps {
+              sh "find ${workspace}"
               sh 'composer run phpcs'
               sh 'composer run phpstan'
             }
