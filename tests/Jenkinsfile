@@ -35,7 +35,7 @@ pipeline {
             }
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
-              catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+              catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                 script {
                   if ( env.PREFERED_PACKAGES == "stable" ) {
                     sh 'composer run phpcs' 
