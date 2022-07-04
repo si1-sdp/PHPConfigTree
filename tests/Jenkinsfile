@@ -17,7 +17,7 @@ def buildAndTest(String image, String prefer) {
   try {
     sh 'composer run test'
   } catch (err) {
-    echo "FAILED IN PHPUNIT"
+    echo "PHPUNIT TESTS FAILED"
   }
 }
 
@@ -57,9 +57,7 @@ pipeline {
               lock( "synchronous-matrix" )
             }
             steps {
-              script {
-                buildAndTest()
-              }
+              buildAndTest()
               junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
