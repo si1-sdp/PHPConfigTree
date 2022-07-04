@@ -44,7 +44,7 @@ pipeline {
                 sh 'composer run test'
               }
               sh "ls tests/results"
-              junit 'tests/results/*.xml'
+              junit 'tests/results/phpunit.xml'
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
             }
           }
