@@ -1,14 +1,15 @@
 
 def buildAndTest(String image, String prefer) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
-  def exists = fileExists "${workspace}/tests/results"
-  while(!exists) {
-    echo "Sleeping for 5 seconds..."
-    sleep(5)
-    sh "ls -l ${workspace}/tests"
-    exists = fileExists "${workspace}/tests/results"
-    echo "File exists = $exists"
-  }
+  sh "mkdir -p ${workspace}/tests/results"
+  // def exists = fileExists "${workspace}/tests/results"
+  // while(!exists) {
+  //   echo "Sleeping for 5 seconds..."
+  //   sleep(5)
+  //   sh "ls -l ${workspace}/tests"
+  //   exists = fileExists "${workspace}/tests/results"
+  //   echo "File exists = $exists"
+  // }
   sh "rm -f tests/results/phpstan.xml"
   sh "rm -f tests/results/phpstan.xml"
   
