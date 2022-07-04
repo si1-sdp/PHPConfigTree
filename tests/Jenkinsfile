@@ -2,7 +2,7 @@
 def buildAndTest(String image, String prefer) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
   def exists = fileExists "${workspace}/tests/results"
-  while(not exists) {
+  while(!exists) {
     echo "Sleeping for 5 seconds..."
     sleep(5)
     sh "ls -l ${workspace}"
