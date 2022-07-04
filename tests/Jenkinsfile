@@ -4,14 +4,14 @@ def buildAndTest(String image, String prefer) {
   sh 'rm -f tests/results/phpstan.xml'
   if ( $prefer == "stable" ) {
     try {
-      sh "composer run phpcs > ${workspace}/tests/results/phpstan.xml"
+      sh "composer run phpcs > ${workspace}/tests/results/phpcs.xml"
     } catch (err) {
       echo "PHPCS FAILED"
     }
     try {
       sh "composer run phpstan > ${workspace}/tests/results/phpstan.xml"
     } catch (err) {
-      echo "PHPCS FAILED"
+      echo "PHPSTAN FAILED"
     }
   }
   try {
