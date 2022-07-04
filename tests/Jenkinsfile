@@ -35,7 +35,7 @@ pipeline {
             }
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
-              catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+              catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                 script {
                   if ( env.PREFERED_PACKAGES == "stable" ) {
                     sh 'composer run phpcs' 
@@ -45,9 +45,10 @@ pipeline {
                   } else {
                     sh 'rm -f tests/results/phpstan.xml'
                   }
-                  sh 'composer run test'
-
                 }
+              }
+              catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                  sh 'composer run test'
               }
               junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
