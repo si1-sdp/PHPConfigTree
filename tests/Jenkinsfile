@@ -12,12 +12,6 @@ pipeline {
   stages {
     stage('build and test') {
       matrix {
-        agent {
-          docker {
-            image $IMAGE
-            reuseNode true
-          }
-        }
         axes {
           axis {
             name 'IMAGE'
@@ -26,6 +20,12 @@ pipeline {
           axis {
             name 'PREFERED_PACKAGES'
             values 'stable','lowest'
+          }
+        }
+        agent {
+          docker {
+            image '$IMAGE'
+            reuseNode true
           }
         }
         stages {
