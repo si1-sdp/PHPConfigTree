@@ -14,7 +14,7 @@ pipeline {
       matrix {
         agent {
           docker {
-            image '$IMAGE'
+            image $IMAGE
             reuseNode true
           }
         }
