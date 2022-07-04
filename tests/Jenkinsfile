@@ -7,6 +7,7 @@ def buildAndTest(String image, String prefer) {
     sleep(5)
     sh "ls -l ${workspace}"
     exists = fileExists "${workspace}/tests/results"
+    echo "File exists = $exists"
   }
   sh "rm -f tests/results/phpstan.xml"
   sh "rm -f tests/results/phpstan.xml"
