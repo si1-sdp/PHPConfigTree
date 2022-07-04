@@ -7,7 +7,7 @@ def buildAndTest(String image, String prefer) {
   while(count <= 5) {
     echo "Count is $count"
     echo "Sleeping for 5 seconds..."
-    sh "ls -l "${workspace}"
+    sh "ls -l ${workspace}"
     sleep(5)
     count++
   }
