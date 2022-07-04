@@ -3,10 +3,11 @@ def buildAndTest(String image, String prefer) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
   sh "rm -f tests/results/phpstan.xml"
   sh "rm -f tests/results/phpstan.xml"
+  def count=1
   while(count <= 5) {
-    sh "ls -l "${workspace}"
     echo "Count is $count"
     echo "Sleeping for 5 seconds..."
+    sh "ls -l "${workspace}"
     sleep(5)
     count++
   }
