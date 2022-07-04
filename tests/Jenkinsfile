@@ -38,10 +38,10 @@ pipeline {
               script {
                 sh 'rm -f tests/results/phpstan.xml'
                 if ( env.PREFERED_PACKAGES == "stable" ) {
-                  catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                  catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                       sh 'composer run phpcs' 
                   }
-                  catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                  catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                     def result = sh(returnStdout: true, script: 'composer run phpstan')
                   }
                   echo "RESULT : $result"
