@@ -35,8 +35,8 @@ pipeline {
             }
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
-              sh '[[ $PREFERED_PACKAGES = 'stable' ]] && composer run phpcs' 
-              sh '[[ $PREFERED_PACKAGES = 'stable' ]] && composer run phpstan' 
+              sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpcs' 
+              sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan' 
               sh 'composer run test'
               junit 'tests/results/*.xml'
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
