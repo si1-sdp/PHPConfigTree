@@ -41,7 +41,7 @@ pipeline {
               catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                 sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpcs   || true' 
                 script {
-                  def result = sh(returnStdout: ture, script: '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true')
+                  def result = sh(returnStdout: true, script: '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true')
                   writeFile(file: "tests/results/phpstan.xml", text: result)
                 }
                 sh 'composer run test'
