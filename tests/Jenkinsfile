@@ -41,11 +41,12 @@ pipeline {
                   catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                       sh 'composer run phpcs' 
                   }
-                  catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                  try {
                     def result = sh(returnStdout: true, script: 'composer run phpstan')
+                  } catch (Exception e) {
+                    echo "RESULT : $result"
+                    writeFile(file: "tests/results/phpstan.xml", text: result)
                   }
-                  echo "RESULT : $result"
-                  writeFile(file: "tests/results/phpstan.xml", text: result)
                 }
               }
               catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
