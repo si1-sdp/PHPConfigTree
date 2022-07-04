@@ -44,9 +44,9 @@ pipeline {
                     echo "FAILED IN PHPCS Step"
                   }
                   try {
-                    def result = sh(returnStdout: true, script: 'composer run phpstan')
+                    sh 'composer run phpstan > tests/results/phpstan.xml'
                   } catch (err) {
-                    echo "RESULT : ${result}"
+                    sh 'cat tests/results/phpstan.xml'
                     //writeFile(file: "tests/results/phpstan.xml", text: $result)
                   }
                 }
