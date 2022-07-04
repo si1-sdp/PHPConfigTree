@@ -35,7 +35,7 @@ pipeline {
             }
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
-              catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+              catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                 sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpcs   || true' 
                 script {
                   def result = sh(returnStdout: true, script: '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true')
@@ -43,8 +43,10 @@ pipeline {
                 }
                 sh 'composer run test'
               }
+              catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                  junit testResults: 'tests/results/*.xml', skipPublishingChecks: true
+              }
               sh "ls tests/results"
-              junit testResults: 'tests/results/*.xml', skipPublishingChecks: true
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
             }
           }
@@ -57,7 +59,7 @@ pipeline {
         script {
           projectKey        = "-Dsonar.projectKey=${project}"
           sources           = "-Dsonar.sources=${workspace}/src"
-          testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
+          testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/*.xml"
           coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
           withSonarQubeEnv('Sonarqube-server') {
               sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
