@@ -40,7 +40,8 @@ pipeline {
               sh "ls tests"
               catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                 sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpcs   || true' 
-                sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true' 
+                result = sh(returnStdout: ture, script: '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true')
+                writeFile(file: "tests/results/phpstan.xml", text: result)
                 sh 'composer run test'
               }
               junit 'tests/results/*.xml'
