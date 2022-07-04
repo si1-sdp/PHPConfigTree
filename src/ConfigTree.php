@@ -18,7 +18,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class ConfigTree
 {
-    /** @var string */
+    /** @var array<string,mixed> */
     protected $options = [];
 
     /** @var array<string,mixed> */
