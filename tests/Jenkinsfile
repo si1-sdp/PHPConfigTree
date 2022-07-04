@@ -36,26 +36,16 @@ pipeline {
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
               script {
+                sh 'rm -f tests/results/phpstan.xml'
                 if ( env.PREFERED_PACKAGES == "stable" ) {
-                  catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                  catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                       sh 'composer run phpcs' 
                   }
-                  catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                  catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     def result = sh(returnStdout: true, script: 'composer run phpstan')
-                    writeFile(file: "tests/results/phpstan.xml", text: result)
-                    sh "cat tests/results/phpstan.xml"
                   }
-                }
-              }
-              catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                script {
-                  if ( env.PREFERED_PACKAGES == "stable" ) {
-                    def result = sh(returnStdout: true, script: 'composer run phpstan')
-                    writeFile(file: "tests/results/phpstan.xml", text: result)
-                    sh "cat tests/results/phpstan.xml"
-                  } else {
-                    sh 'rm -f tests/results/phpstan.xml'
-                  }
+                  echo "RESULT : $result"
+                  writeFile(file: "tests/results/phpstan.xml", text: result)
                 }
               }
               catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
