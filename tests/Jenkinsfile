@@ -52,7 +52,10 @@ pipeline {
           stash name: 'tests' 
         }
         when {
-          expression { $PREFERED_PACKAGES == 'stable' and $IMAGE == 'php81' }
+          allOf {
+            environment name: 'PREFERED_PACKAGES', value: 'stable'
+            environment name: 'IMAGE', value: 'php81' 
+          }
         }
       }
     }
