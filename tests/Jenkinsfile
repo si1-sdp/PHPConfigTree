@@ -36,8 +36,8 @@ pipeline {
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
               sh "ls"
-              sh "echo $PWD"
-              sh "ls $PWD/tests"
+              sh "echo ${workspace}"
+              sh "ls tests"
               catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                 sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpcs   || true' 
                 sh '[[ $PREFERED_PACKAGES = "stable" ]] && composer run phpstan || true' 
