@@ -1,16 +1,15 @@
 
 def buildAndTest(String image, String prefer) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
-  sh "rm -f tests/results/phpstan.xml"
-  sh "rm -f tests/results/phpstan.xml"
-  def count=1
-  while(count <= 5) {
-    echo "Count is $count"
+  def exists = fileExists "${workspace}/tests/results"
+  while(not exists) {
     echo "Sleeping for 5 seconds..."
-    sh "ls -l ${workspace}"
     sleep(5)
-    count++
+    sh "ls -l ${workspace}"
+    exists = fileExists "${workspace}/tests/results"
   }
+  sh "rm -f tests/results/phpstan.xml"
+  sh "rm -f tests/results/phpstan.xml"
   
   if ( "${prefer}" == "stable" ) {
     try {
