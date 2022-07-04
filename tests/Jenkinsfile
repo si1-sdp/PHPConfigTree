@@ -1,3 +1,26 @@
+def buildAndTest(String image, String prefer) {
+  sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
+  sh 'rm -f tests/results/phpstan.xml'
+  sh 'rm -f tests/results/phpstan.xml'
+  if ( $prefer == "stable" ) {
+    try {
+      sh "composer run phpcs > ${workspace}/tests/results/phpstan.xml"
+    } catch (err) {
+      echo "PHPCS FAILED"
+    }
+    try {
+      sh "composer run phpstan > ${workspace}/tests/results/phpstan.xml"
+    } catch (err) {
+      echo "PHPCS FAILED"
+    }
+  }
+  try {
+    sh 'composer run test'
+  } catch (err) {
+    echo "FAILED IN PHPUNIT"
+  }
+}
+
 
 pipeline {
   environment {
@@ -34,29 +57,8 @@ pipeline {
               lock( "synchronous-matrix" )
             }
             steps {
-              sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
               script {
-                sh 'rm -f tests/results/phpstan.xml'
-                sh 'rm -f tests/results/phpstan.xml'
-                if ( env.PREFERED_PACKAGES == "stable" ) {
-                  try {
-                    sh "composer run phpcs > ${workspace}/tests/results/phpstan.xml"
-                  } catch (err) {
-                    echo "PHPCS FAILED"
-                  }
-                  try {
-                    sh "composer run phpstan > ${workspace}/tests/results/phpstan.xml"
-                  } catch (err) {
-                    sh 'cat tests/results/phpstan.xml'
-                    //writeFile(file: "tests/results/phpstan.xml", text: $result)
-                  }
-                }
-                try {
-                  sh 'composer run test'
-                } catch (err) {
-                  echo "FAILED IN PHPUNIT"
-                }
-
+                buildAndTest()
               }
               junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
               sh "ls tests/results"
