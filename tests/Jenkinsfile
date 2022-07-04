@@ -43,7 +43,7 @@ pipeline {
                 }
                 sh 'composer run test'
               }
-              sh "ls tests"
+              sh "ls tests/results"
               junit 'tests/results/*.xml'
               stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
             }
