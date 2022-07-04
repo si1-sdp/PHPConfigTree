@@ -5,7 +5,7 @@ def buildAndTest(String image, String prefer) {
   while(!exists) {
     echo "Sleeping for 5 seconds..."
     sleep(5)
-    sh "ls -l ${workspace}"
+    sh "ls -l ${workspace}/tests"
     exists = fileExists "${workspace}/tests/results"
     echo "File exists = $exists"
   }
