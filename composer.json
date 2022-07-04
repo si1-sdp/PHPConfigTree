@@ -36,7 +36,7 @@
 	},
         "scripts": {
             "test": "vendor/bin/phpunit",
-            "phpstan": "vendor/bin/phpstan",
+            "phpstan": "vendor/bin/phpstan analyse --no-progress --error-format=junit > tests/results/phpstan.xml",
             "phpcs": "vendor/bin/phpcs"
         }
 }
