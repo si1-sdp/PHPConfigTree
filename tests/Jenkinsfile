@@ -41,6 +41,7 @@ pipeline {
                     sh 'composer run phpcs' 
                     def result = sh(returnStdout: true, script: 'composer run phpstan')
                     writeFile(file: "tests/results/phpstan.xml", text: result)
+                    sh "cat tests/results/phpstan.xml'
                   } else {
                     sh 'rm -f tests/results/phpstan.xml'
                   }
