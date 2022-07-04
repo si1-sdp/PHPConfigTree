@@ -12,6 +12,7 @@ pipeline {
   stages {
     stage('build and test') {
       matrix {
+        agent { label 'rocky' }
         axes {
           axis {
             name 'IMAGE'
