@@ -8,7 +8,7 @@ pipeline {
     scannerHome  = tool 'sonar-scanner'
     XDEBUG_MODE  = "coverage"
   }
-  agent none
+  agent any
   stages {
       stage('Tests on php7.4 --prefer stable') {
         agent { 
