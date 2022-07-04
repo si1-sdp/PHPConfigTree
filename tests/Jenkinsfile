@@ -8,13 +8,12 @@ pipeline {
     scannerHome  = tool 'sonar-scanner'
     XDEBUG_MODE  = "coverage"
   }
-  agent any
+  agent  { label 'rocky8' }
   stages {
     stage('build and test') {
       matrix {
         agent {
           docker {
-            label 'rocky8'
             image '$IMAGE'
             reuseNode true
           }
