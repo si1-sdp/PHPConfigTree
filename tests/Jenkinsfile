@@ -3,7 +3,7 @@ def buildAndTest(String image, String prefer) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
   sh 'rm -f tests/results/phpstan.xml'
   sh 'rm -f tests/results/phpstan.xml'
-  if ( $prefer == "stable" ) {
+  if ( "${prefer}" == "stable" ) {
     try {
       sh "composer run phpcs > ${workspace}/tests/results/phpcs.xml"
     } catch (err) {
