@@ -47,7 +47,7 @@ pipeline {
                     def result = sh(returnStdout: true, script: 'composer run phpstan')
                   } catch (err) {
                     echo "RESULT : $result"
-                    writeFile(file: "tests/results/phpstan.xml", text: result)
+                    //writeFile(file: "tests/results/phpstan.xml", text: $result)
                   }
                 }
               }
