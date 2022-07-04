@@ -44,7 +44,7 @@ pipeline {
                     echo "FAILED IN PHPCS Step"
                   }
                   try {
-                    sh 'composer run phpstan > tests/results/phpstan.xml'
+                    sh "composer run phpstan > ${workspace}/tests/results/phpstan.xml"
                   } catch (err) {
                     sh 'cat tests/results/phpstan.xml'
                     //writeFile(file: "tests/results/phpstan.xml", text: $result)
