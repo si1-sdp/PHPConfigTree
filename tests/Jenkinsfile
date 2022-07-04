@@ -29,36 +29,17 @@ pipeline {
           }
         }
         stages {
-          stage('Build') {
+          stage('Build and test') {
+            options {
+              lock( "synchronous-matrix" )
+            }
             steps {
               sh "composer update --prefer-$PREFERED_PACKAGES --prefer-dist --no-interaction"
-            }
-          }
-          stage('lint') {
-            when {
-              environment name: 'PREFERED_PACKAGES', value: 'stable'
-            }
-            steps {
-              sh "find ${workspace}"
-              sh 'composer run phpcs'
-              sh 'composer run phpstan'
-            }
-          }
-          stage('phpunit') {
-            steps {
+              sh '[[ $PREFERED_PACKAGES = 'stable' ]] && composer run phpcs' 
+              sh '[[ $PREFERED_PACKAGES = 'stable' ]] && composer run phpstan' 
               sh 'composer run test'
               junit 'tests/results/*.xml'
-            }
-          }
-          stage('stash results') {
-            steps {
-              stash name: 'tests' 
-            }
-            when {
-              allOf {
-                environment name: 'PREFERED_PACKAGES', value: 'stable'
-                environment name: 'IMAGE', value: 'php81' 
-              }
+              stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
             }
           }
         }
@@ -66,7 +47,7 @@ pipeline {
     }
     stage('sonarQube') {
       steps {
-        unstash name: 'tests'
+        unstash name: 'tests_php81_stable'
         script {
           projectKey        = "-Dsonar.projectKey=${project}"
           sources           = "-Dsonar.sources=${workspace}/src"
