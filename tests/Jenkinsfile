@@ -38,12 +38,14 @@ pipeline {
               script {
                 sh 'rm -f tests/results/phpstan.xml'
                 if ( env.PREFERED_PACKAGES == "stable" ) {
-                  catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                  try {
                       sh 'composer run phpcs' 
+                  } catch (err) {
+                    echo "FAILED IN PHPCS Step"
                   }
                   try {
                     def result = sh(returnStdout: true, script: 'composer run phpstan')
-                  } catch (Exception e) {
+                  } catch (err) {
                     echo "RESULT : $result"
                     writeFile(file: "tests/results/phpstan.xml", text: result)
                   }
