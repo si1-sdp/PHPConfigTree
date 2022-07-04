@@ -9,74 +9,140 @@ pipeline {
     XDEBUG_MODE  = "coverage"
   }
   agent any
-  stages {
-      stage('Tests on php7.4 --prefer stable') {
-        agent { 
-          docker {
-            image 'php74'
-            reuseNode true
-          }
-        }
+  matrix {
+    axes {
+      axis {
+        name 'IMAGE'
+        values 'php74','php81'
+      }
+      axis {
+        name 'PREFERED_PACKAGES'
+        values 'stable','lowest'
+      }
+    }
+    agent {
+      docker {
+        image '$IMAGE'
+        reuseNode true
+      }
+    }
+    stages {
+      stage('Build') {
         steps {
-            sh 'composer update --prefer-stable'
-            sh 'composer run phpcs'
-            sh 'composer run phpstan'
-            sh 'composer run test'
+          sh "composer update --prefer-PREFERED_PACKAGES"
         }
       }
-      stage('Tests on php7.4 --prefer-lowest') {
-        agent { 
-          docker {
-            image 'php74'
-            reuseNode true
-          }
+      stage('lint') {
+        when {
+          environment name: 'PREFERED_PACKAGES', value: 'stable'
         }
         steps {
-            sh 'composer update --prefer-lowest'
-            sh 'composer run test'
+          sh 'composer run phpcs'
+          sh 'composer run phpstan'
         }
       }
-      stage('Tests on php8.1 --prefer stable') {
-        agent { 
-          docker {
-            image 'php81'
-            reuseNode true
-          }
-        }
+      stage('phpunit') {
         steps {
-            sh 'composer update --prefer-stable'
-            sh 'composer run phpcs'
-            sh 'composer run phpstan'
-            sh 'composer run test'
-            junit 'tests/results/*.xml'
-            stash name: 'tests' 
-         }
-      }
-      stage('Tests on php8.1 --prefer-lowest') {
-        agent { 
-          docker {
-            image 'php81'
-            reuseNode true
-          }
+          sh 'composer run test'
+          junit 'tests/results/*.xml'
         }
+      }
+      stage('stash results') {
         steps {
-            sh 'composer update --prefer-lowest'
-            sh 'composer run test'
+          stash name: 'tests' 
+        }
+        when {
+          expression { $PREFERED_PACKAGES == 'stable' and $IMAGE == 'php81' }
         }
       }
-      stage('sonarQube') {
-        steps {
-          unstash name: 'tests'
-          script {
-            projectKey        = "-Dsonar.projectKey=${project}"
-            sources           = "-Dsonar.sources=${workspace}/src"
-            testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
-            coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
-            withSonarQubeEnv('Sonarqube-server') {
-                sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
-            }
-          }
-        }
-      }
+    }
   }
+  stages {
+    stage('sonarQube') {
+      steps {
+        unstash name: 'tests'
+        script {
+          projectKey        = "-Dsonar.projectKey=${project}"
+          sources           = "-Dsonar.sources=${workspace}/src"
+          testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
+          coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
+          withSonarQubeEnv('Sonarqube-server') {
+              sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
+          }
+        }
+      }
+    }
+  }
+}
+
+  // stages {
+  //     stage('Tests on php7.4 --prefer stable') {
+  //       agent { 
+  //         docker {
+  //           image 'php74'
+  //           reuseNode true
+  //         }
+  //       }
+  //       steps {
+  //           sh 'composer update --prefer-stable'
+  //           sh 'composer run phpcs'
+  //           sh 'composer run phpstan'
+  //           sh 'composer run test'
+  //       }
+  //     }
+  //     stage('Tests on php7.4 --prefer-lowest') {
+  //       agent { 
+  //         docker {
+  //           image 'php74'
+  //           reuseNode true
+  //         }
+  //       }
+  //       steps {
+  //           sh 'composer update --prefer-lowest'
+  //           sh 'composer run test'
+  //       }
+  //     }
+  //     stage('Tests on php8.1 --prefer stable') {
+  //       agent { 
+  //         docker {
+  //           image 'php81'
+  //           reuseNode true
+  //         }
+  //       }
+  //       steps {
+  //           sh 'composer update --prefer-stable'
+  //           sh 'composer run phpcs'
+  //           sh 'composer run phpstan'
+  //           sh 'composer run test'
+  //           junit 'tests/results/*.xml'
+  //           stash name: 'tests' 
+  //        }
+  //     }
+  //     stage('Tests on php8.1 --prefer-lowest') {
+  //       agent { 
+  //         docker {
+  //           image 'php81'
+  //           reuseNode true
+  //         }
+  //       }
+  //       steps {
+  //           sh 'composer update --prefer-lowest'
+  //           sh 'composer run test'
+  //       }
+  //     }
+  //     stage('sonarQube') {
+  //       steps {
+  //         unstash name: 'tests'
+  //         script {
+  //           projectKey        = "-Dsonar.projectKey=${project}"
+  //           sources           = "-Dsonar.sources=${workspace}/src"
+  //           testReports       = "-Dsonar.php.tests.reportPath=${workspace}/tests/results/tests-phpunit.xml"
+  //           coverage          = "-Dsonar.php.coverage.reportPaths=${workspace}/tests/results/coverage.xml"
+  //           withSonarQubeEnv('Sonarqube-server') {
+  //               sh "${scannerHome}/bin/sonar-scanner ${projectKey} -Dsonar.tests=${workspace}/tests ${sources} ${testReports} ${coverage}"
+  //           }
+  //         }
+  //       }
+  //     }
+  // }
 }
