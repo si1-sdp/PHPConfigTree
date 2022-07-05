@@ -72,7 +72,7 @@ pipeline {
               lock( "synchronous-matrix" )
             }
             steps {
-              setProxy()
+              setDgfipProxy()
               buildAndTestLibrary("$IMAGE", "$PREFERED_PACKAGES", "php81-stable")
             }
           }
