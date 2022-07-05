@@ -33,7 +33,7 @@ class ConfigTree
     public function __construct($schemaFile)
     {
         try {
-            $schemaFileContent = file_get_contents($schemaFile);
+            $schemaFileContent = file_get_contents($schemaFile); 
         } catch (\exception $e) {
             throw new JsonValidationException(sprintf("Schema file not found : '%s'", $schemaFile));
         }

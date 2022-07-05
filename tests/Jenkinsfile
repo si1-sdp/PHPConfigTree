@@ -1,15 +1,13 @@
 
-def buildAndTest(String image, String prefer) {
+
+Map matrix_axes = [
+    IMAGE: ['php74', 'php81'],
+    PREFERED_PACKAGES: ['stable', 'lowest']
+]
+
+def buildAndTestLibrary(String image, String prefer, String stashBranch) {
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
   sh "mkdir -p ${workspace}/tests/results"
-  // def exists = fileExists "${workspace}/tests/results"
-  // while(!exists) {
-  //   echo "Sleeping for 5 seconds..."
-  //   sleep(5)
-  //   sh "ls -l ${workspace}/tests"
-  //   exists = fileExists "${workspace}/tests/results"
-  //   echo "File exists = $exists"
-  // }
   sh "rm -f tests/results/phpstan.xml"
   sh "rm -f tests/results/phpstan.xml"
   
@@ -29,6 +27,12 @@ def buildAndTest(String image, String prefer) {
     sh 'composer run test'
   } catch (err) {
     echo "PHPUNIT TESTS FAILED"
+  }
+  junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
+  if ( "${stashBranch}" == "${image}-${prefer}")
+    echo "STASING RESULTS FOR SONARQUBE"
+    sh "ls tests/results"
+    stash name: "tests"
   }
 }
 
@@ -68,10 +72,7 @@ pipeline {
               lock( "synchronous-matrix" )
             }
             steps {
-              buildAndTest("$IMAGE", "$PREFERED_PACKAGES")
-              junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
-              sh "ls tests/results"
-              stash name: "test_${IMAGE}_${PREFERED_PACKAGES}"
+              buildAndTestLibrary("$IMAGE", "$PREFERED_PACKAGES", "php81-stable")
             }
           }
         }
@@ -79,7 +80,7 @@ pipeline {
     }
     stage('sonarQube') {
       steps {
-        unstash name: 'test_php81_stable'
+        unstash name: 'tests'
         script {
           projectKey        = "-Dsonar.projectKey=${project}"
           sources           = "-Dsonar.sources=${workspace}/src"
