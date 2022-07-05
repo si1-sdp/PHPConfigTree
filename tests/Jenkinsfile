@@ -6,7 +6,6 @@ Map matrix_axes = [
 ]
 
 def buildAndTestLibrary(String image, String prefer, String stashBranch) {
-  setProxy()
   sh "composer update --prefer-${prefer} --prefer-dist --no-interaction"
   sh "mkdir -p ${workspace}/tests/results"
   sh "rm -f tests/results/phpstan.xml"
@@ -73,6 +72,7 @@ pipeline {
               lock( "synchronous-matrix" )
             }
             steps {
+              setProxy()
               buildAndTestLibrary("$IMAGE", "$PREFERED_PACKAGES", "php81-stable")
             }
           }
