@@ -29,7 +29,7 @@ def buildAndTestLibrary(String image, String prefer, String stashBranch) {
     echo "PHPUNIT TESTS FAILED"
   }
   junit testResults: 'tests/results/*.xml', skipPublishingChecks: true, allowEmptyResults: true
-  if ( "${stashBranch}" == "${image}-${prefer}")
+  if ( "${stashBranch}" == "${image}-${prefer}") {
     echo "STASING RESULTS FOR SONARQUBE"
     sh "ls tests/results"
     stash name: "tests"
