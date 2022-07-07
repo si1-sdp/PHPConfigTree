@@ -21,5 +21,5 @@ jobs:
           extensions: mbstring
           coverage: xdebug
       - run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
-      - run: composer run test
+      - run: composer run phpunit
 
