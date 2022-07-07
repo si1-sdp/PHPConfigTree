@@ -35,8 +35,8 @@
 		}
 	},
         "scripts": {
-            "test": "vendor/bin/phpunit",
-            "phpstan": "vendor/bin/phpstan",
-            "phpcs": "vendor/bin/phpcs"
+            "phpunit": "vendor/bin/phpunit --log-junit tests/results/phpunit.xml",
+            "phpstan": "vendor/bin/phpstan analyse --no-progress --error-format=junit",
+            "phpcs": "vendor/bin/phpcs --report=junit"
         }
 }

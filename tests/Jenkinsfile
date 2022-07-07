@@ -1,0 +1,5 @@
+// library must be configured (configure system / Global Pipeline Libraries)
+// https://forge.dgfip.finances.rie.gouv.fr/dgfip/drupal-php/components/jenkins/sdp-jenkins-libs.git
+@Library('sdplib') _
+
+libraryTest('project': 'PHPConfigTree')
