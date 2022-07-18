@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace DgfipSI1\ConfigTree;
 
-use Composer\Json\JsonValidationException;
 use JsonSchema\Validator;
 use Symfony\Component\Yaml\Yaml;
+use DgfipSI1\ConfigTree\Exception\SchemaValidationException;
+use DgfipSI1\ConfigTree\Exception\BranchNotFoundException;
+use DgfipSI1\ConfigTree\Exception\ValueNotFoundException;
 
 /**
  * class RepoMirror
@@ -35,7 +37,7 @@ class ConfigTree
         try {
             $schemaFileContent = file_get_contents($schemaFile);
         } catch (\exception $e) {
-            throw new JsonValidationException(sprintf("Schema file not found : '%s'", $schemaFile));
+            throw new SchemaValidationException(sprintf("Schema file not found : '%s'", $schemaFile));
         }
         switch (pathinfo($schemaFile, PATHINFO_EXTENSION)) {
             case 'json':
@@ -45,6 +47,9 @@ class ConfigTree
             case 'yaml':
                 $this->schema  = (array) yaml::parseFile($schemaFile, yaml::DUMP_OBJECT_AS_MAP);
                 break;
+            default:
+                $msg = "Unsupported extension for : '%s'\nSupported schema types : yaml or json.";
+                throw new SchemaValidationException(sprintf($msg, $schemaFile));
         }
         $this->options = $this->getDefaultOptions();
     }
@@ -73,46 +78,24 @@ class ConfigTree
      *
      * @return array<string,mixed>
      */
-    public function getDefaultOptions(&$options = null, &$properties = null)
+    public function getDefaultOptions(&$options = [], &$properties = null)
     {
-        if (null === $options) {
-            $options = [];
-        }
         if (null === $properties) {
             $properties = $this->schema['properties'];
         }
         if (!is_array($properties)) {
-            throw new \Exception('Bad schema : properties should be an array');
+            throw new SchemaValidationException('Bad schema : properties should be an array');
         }
         foreach ($properties as $key => $props) {
             if (!is_array($props)) {
-                throw new \Exception(sprintf('Bad schema : expecting attributes for property %s', $key));
+                $msg = 'Bad schema : expecting attributes for property %s';
+                throw new SchemaValidationException(sprintf($msg, $key));
             }
+            $type = $props['type'];
             if (array_key_exists('default', $props)) {
-                $type = $props['type'];
-                if (is_array($type)) {
-                    $type = $type[0];
-                }
-                switch ($type) {
-                    case 'string':
-                        $value = $props['default'];
-                        break;
-                    case 'null':
-                        $value = null;
-                        break;
-                    case 'boolean':
-                        $value = $props['default'] ? true : false;
-                        break;
-                    case 'integer':
-                        $value = 0 + $props['default'];
-                        break;
-                    case 'array':
-                        $value = [];
-                        break;
-                    default:
-                        throw new \Exception(sprintf("Unknown type : '%s'", $type));
-                }
-                $options[$key] = $value;
+                $options[$key] = $this->getDefaultValue($type, $props['default']);
+            } elseif ('array' === $type) {
+                $options[$key] = [];
             }
             if (array_key_exists('properties', $props)) {
                 $this->getDefaultOptions($options[$key], $props['properties']);
@@ -135,7 +118,7 @@ class ConfigTree
             foreach ((array) $validator->getErrors() as $error) {
                 $errors[] = ($error['property'] ? $error['property'].' : ' : '').$error['message'];
             }
-            throw new JsonValidationException('Validation error: config does not match schema.', $errors);
+            throw new SchemaValidationException('Validation error: config does not match schema.', $errors);
         }
 
         return true;
@@ -156,9 +139,11 @@ class ConfigTree
         foreach ($nodes as $node) {
             if (!array_key_exists($node, $branch)) {
                 if (sizeof($nodes) !== $index) {
-                    throw new \Exception(sprintf("Config branch '%s/%s' does not exist.", $branchName, $node));
+                    $msg = "Config branch '%s/%s' does not exist.";
+                    throw new BranchNotFoundException(sprintf($msg, $branchName, $node));
                 }
-                throw new \Exception(sprintf("Option '%s' does not exists or has not been set.", $name));
+                $msg = "Option '%s' does not exists or has not been set.";
+                throw new ValueNotFoundException(sprintf($msg, $name));
             }
             if (sizeof($nodes) !== $index) {
                 $index++;
@@ -184,14 +169,12 @@ class ConfigTree
         $branch = &$this->options;
         $nodes = explode('.', $name);
         $index = 1;
-        // print "\n\nSET $name => $value\n";
-        // print_r($branch);
-        // print "TYPE : ".gettype($branch)."\n\n";
         $branchName = '';
         foreach ($nodes as $node) {
             if (sizeof($nodes) !== $index) {
                 if (!array_key_exists($node, $branch)) {
-                    throw new \Exception(sprintf("Config branch '%s/%s' does not exist.", $branchName, $node));
+                    $msg = "Config branch '%s/%s' does not exist.";
+                    throw new BranchNotFoundException(sprintf($msg, $branchName, $node));
                 }
                 /** @var array<string,mixed> $branch */
                 $branch = &$branch[$node];
@@ -220,5 +203,40 @@ class ConfigTree
             $this->set($optName, $optValue, false);
         }
         $this->check();
+    }
+    /**
+     * Giving type and default string, return typed default value
+     *
+     * @param string|array<string> $type
+     * @param string               $default
+     *
+     * @return mixed
+     */
+    protected function getDefaultValue($type, $default)
+    {
+        if (is_array($type)) {
+            $type = $type[0];
+        }
+        switch ($type) {
+            case 'string':
+                $value = $default;
+                break;
+            case 'null':
+                $value = null;
+                break;
+            case 'boolean':
+                $value = $default ? true : false;
+                break;
+            case 'integer':
+                $value = intval($default);
+                break;
+            case 'array':
+                $value = [];
+                break;
+            default:
+                throw new SchemaValidationException(sprintf("Unknown type : '%s'", $type));
+        }
+
+        return $value;
     }
 }
