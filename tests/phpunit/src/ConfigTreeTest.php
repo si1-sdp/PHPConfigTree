@@ -8,12 +8,19 @@
 
 namespace DgfipSI1\ConfigTreeTests;
 
-use Composer\Json\JsonValidationException;
 use DgfipSI1\ConfigTree\ConfigTree;
+use DgfipSI1\ConfigTree\Exception\SchemaValidationException;
+use DgfipSI1\ConfigTree\Exception\ValueNotFoundException;
+use DgfipSI1\ConfigTree\Exception\BranchNotFoundException;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @covers DgfipSI1\ConfigTree\ConfigTree
+ * covers DgfipSI1\ConfigTree\Exception\ExceptionInterface
+ * @covers DgfipSI1\ConfigTree\Exception\RunTimeException
+ * @covers DgfipSI1\ConfigTree\Exception\BranchNotFoundException
+ * @covers DgfipSI1\ConfigTree\Exception\ValueNotFoundException
+ * @covers DgfipSI1\ConfigTree\Exception\SchemaValidationException
  */
 class ConfigurationTreeTest extends TestCase
 {
@@ -45,13 +52,13 @@ class ConfigurationTreeTest extends TestCase
         $msg = '';
         try {
             $ct = new ConfigTree($this->testDataDir."badSchema1.yaml");
-        } catch (\Exception $e) {
+        } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Bad schema : properties should be an array", $msg);
         try {
             $ct = new ConfigTree($this->testDataDir."badSchema2.yaml");
-        } catch (\Exception $e) {
+        } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Bad schema : expecting attributes for property foo", $msg);
@@ -60,6 +67,21 @@ class ConfigurationTreeTest extends TestCase
         /** @var array<mixed> $list */
         $list = $ct->get('subtree2.list1');
         $this->assertEquals('b', $list[1]);
+        $msg = '';
+        try {
+            $ct = new ConfigTree("absentSchema.json");
+        } catch (SchemaValidationException $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertEquals("Schema file not found : 'absentSchema.json'", $msg);
+        /** test unknown extension */
+        $msg = '';
+        try {
+            $ctYaml = new ConfigTree($this->testDataDir."testSchema.foo");
+        } catch (SchemaValidationException $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertMatchesRegularExpression("/Unsupported extension/", $msg);
     }
    /**
      * Test execCommand method
@@ -85,17 +107,11 @@ class ConfigurationTreeTest extends TestCase
             ],
         ];
         $this->assertEquals($expectedOptions, $ct->getDefaultOptions());
-        $msg = '';
-        try {
-            $ct = new ConfigTree("absentSchema.json");
-        } catch (\Exception $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertEquals("Schema file not found : 'absentSchema.json'", $msg);
+
         $msg = '';
         try {
             $ct = new ConfigTree($this->testDataDir."unhandledSchema.json");
-        } catch (\Exception $e) {
+        } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Unknown type : 'foo'", $msg);
@@ -116,7 +132,7 @@ class ConfigurationTreeTest extends TestCase
         $msg = '';
         try {
             $ct->get('subtree2.subsubtree.string');
-        } catch (\Exception $e) {
+        } catch (ValueNotFoundException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Option 'subtree2.subsubtree.string' does not exists or has not been set.", $msg);
@@ -127,20 +143,20 @@ class ConfigurationTreeTest extends TestCase
         $msg = '';
         try {
             $ct->get('foo.bar.baz');
-        } catch (\Exception $e) {
+        } catch (BranchNotFoundException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Config branch '/foo' does not exist.", $msg);
         try {
             $ct->get('subtree1.bar.baz');
-        } catch (\Exception $e) {
+        } catch (BranchNotFoundException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Config branch '/subtree1/bar' does not exist.", $msg);
         // error case : set option in non existing branch
         try {
             $ct->set('foo.bar.baz', 1);
-        } catch (\Exception $e) {
+        } catch (BranchNotFoundException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals("Config branch '/foo' does not exist.", $msg);
@@ -148,7 +164,7 @@ class ConfigurationTreeTest extends TestCase
         $errs = [];
         try {
             $ct->set('subtree', 1);
-        } catch (JsonValidationException $e) {
+        } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
             $errs = $e->getErrors();
         }
