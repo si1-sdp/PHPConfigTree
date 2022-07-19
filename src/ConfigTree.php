@@ -80,7 +80,7 @@ class ConfigTree
     public static function fromFile($schemaFile, $configFile)
     {
         $instance = new self($schemaFile);
-        $config  = (array) yaml::parseFile($configFile, yaml::DUMP_OBJECT_AS_MAP);
+        $config  = (array) yaml::parseFile($configFile);
         $instance->merge($config);
 
         return $instance;
@@ -142,11 +142,13 @@ class ConfigTree
     /**
      * getters
      *
-     * @param string $name
+     * @param string  $name
+     * @param boolean $nullOnNotFound
+     * @param boolean $nullOnNoBranch
      *
      * @return mixed
      */
-    public function get(string $name)
+    public function get($name, $nullOnNotFound = false, $nullOnNoBranch = false)
     {
         $branch = &$this->options;
         $nodes = explode('.', $name);
@@ -155,8 +157,14 @@ class ConfigTree
         foreach ($nodes as $node) {
             if (!array_key_exists($node, $branch)) {
                 if (sizeof($nodes) !== $index) {
+                    if ($nullOnNoBranch) {
+                        return null;
+                    }
                     $msg = "Config branch '%s/%s' does not exist.";
                     throw new BranchNotFoundException(sprintf($msg, $branchName, $node));
+                }
+                if ($nullOnNotFound) {
+                    return null;
                 }
                 $msg = "Option '%s' does not exists or has not been set.";
                 throw new ValueNotFoundException(sprintf($msg, $name));
