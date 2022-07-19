@@ -62,11 +62,6 @@ class ConfigurationTreeTest extends TestCase
             $msg = $e->getMessage();
         }
         $this->assertEquals("Bad schema : expecting attributes for property foo", $msg);
-        /** test with options schemas */
-        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.yaml", ['subtree2.list1' => ['a', 'b', 'c']]);
-        /** @var array<mixed> $list */
-        $list = $ct->get('subtree2.list1');
-        $this->assertEquals('b', $list[1]);
         $msg = '';
         try {
             $ct = new ConfigTree("absentSchema.json");
@@ -82,6 +77,14 @@ class ConfigurationTreeTest extends TestCase
             $msg = $e->getMessage();
         }
         $this->assertMatchesRegularExpression("/Unsupported extension/", $msg);
+        /** test with options schemas */
+        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.yaml", ['subtree2.list1' => ['a', 'b', 'c']]);
+        /** @var array<mixed> $list */
+        $list = $ct->get('subtree2.list1');
+        $this->assertEquals('b', $list[1]);
+        $ct = ConfigTree::fromFile($this->testDataDir."testSchema.yaml", $this->testDataDir."testConfig.yaml");
+        $list = $ct->get('subtree2.list1');
+        $this->assertEquals('y', $list[1]);
     }
    /**
      * Test execCommand method
@@ -136,6 +139,8 @@ class ConfigurationTreeTest extends TestCase
             $msg = $e->getMessage();
         }
         $this->assertEquals("Option 'subtree2.subsubtree.string' does not exists or has not been set.", $msg);
+        $this->assertNull($ct->get('subtree2.subsubtree.string', true));
+
         // nominal case : set option which had no default
         $ct->set('subtree2.subsubtree.string', 'foo');
         $this->assertEquals('foo', $ct->get('subtree2.subsubtree.string'));
@@ -147,6 +152,8 @@ class ConfigurationTreeTest extends TestCase
             $msg = $e->getMessage();
         }
         $this->assertEquals("Config branch '/foo' does not exist.", $msg);
+        $this->assertNull($ct->get('foo.bar.baz', false, true));
+
         try {
             $ct->get('subtree1.bar.baz');
         } catch (BranchNotFoundException $e) {

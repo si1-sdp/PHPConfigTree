@@ -1,0 +1,6 @@
+---
+boolean-prop1: true
+subtree1:
+  integer-prop1: 10
+subtree2:
+  list1: [ 'x', 'y', 'z']
