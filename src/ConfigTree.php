@@ -69,6 +69,22 @@ class ConfigTree
         return $instance;
     }
 
+    /**
+     * Build ConfigTree Object from yaml file
+     *
+     * @param string $schemaFile
+     * @param string $configFile
+     *
+     * @return self
+     */
+    public static function fromFile($schemaFile, $configFile)
+    {
+        $instance = new self($schemaFile);
+        $config  = (array) yaml::parseFile($configFile, yaml::DUMP_OBJECT_AS_MAP);
+        $instance->merge($config);
+
+        return $instance;
+    }
 
     /**
      * Undocumented function
