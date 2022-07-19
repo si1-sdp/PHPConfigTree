@@ -152,7 +152,7 @@ class ConfigurationTreeTest extends TestCase
         } catch (BranchNotFoundException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertEquals("Config branch '/foo' does not exist.", $msg);
+        $this->assertEquals("Config branch '.foo' does not exist.", $msg);
         $this->assertNull($ct->get('foo.bar.baz', false, true));
 
         try {
@@ -160,14 +160,14 @@ class ConfigurationTreeTest extends TestCase
         } catch (BranchNotFoundException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertEquals("Config branch '/subtree1/bar' does not exist.", $msg);
+        $this->assertEquals("Config branch '.subtree1.bar' does not exist.", $msg);
         // error case : set option in non existing branch
         try {
             $ct->set('foo.bar.baz', 1);
         } catch (BranchNotFoundException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertEquals("Config branch '/foo' does not exist.", $msg);
+        $this->assertEquals("Config branch '.foo' does not exist.", $msg);
         // error case : set non existing option : this time should fire a check exception
         $errs = [];
         try {

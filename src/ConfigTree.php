@@ -12,6 +12,7 @@ use JsonSchema\Validator;
 use Symfony\Component\Yaml\Yaml;
 use DgfipSI1\ConfigTree\Exception\SchemaValidationException;
 use DgfipSI1\ConfigTree\Exception\BranchNotFoundException;
+use DgfipSI1\ConfigTree\Exception\RuntimeException;
 use DgfipSI1\ConfigTree\Exception\ValueNotFoundException;
 
 /**
@@ -20,6 +21,10 @@ use DgfipSI1\ConfigTree\Exception\ValueNotFoundException;
  */
 class ConfigTree
 {
+    protected const STATUS_OK = 1;
+    protected const STATUS_NO_VALUE = 2;
+    protected const STATUS_NO_BRANCH = 3;
+
     /** @var array<string,mixed> */
     protected $options = [];
 
@@ -154,30 +159,45 @@ class ConfigTree
         $nodes = explode('.', $name);
         $index = 1;
         $branchName = '';
+        $status = 0;
         foreach ($nodes as $node) {
+            $branchName = "$branchName.$node";
             if (!array_key_exists($node, $branch)) {
+                // node not found, and whe're not at leaf yet => Branch not found
                 if (sizeof($nodes) !== $index) {
-                    if ($nullOnNoBranch) {
-                        return null;
-                    }
-                    $msg = "Config branch '%s/%s' does not exist.";
-                    throw new BranchNotFoundException(sprintf($msg, $branchName, $node));
+                    $status = self::STATUS_NO_BRANCH;
+                } else {
+                    $status = self::STATUS_NO_VALUE;
                 }
-                if ($nullOnNotFound) {
-                    return null;
-                }
-                $msg = "Option '%s' does not exists or has not been set.";
-                throw new ValueNotFoundException(sprintf($msg, $name));
+                break;
             }
             if (sizeof($nodes) !== $index) {
                 $index++;
-                $branchName = "$branchName/$node";
                 /** @var array<string,mixed> $branch */
                 $branch = &$branch[$node];
             } else {
                 return $branch[$node];
             }
         }
+        /* if we did not return yet, it means we have an error  */
+        switch ($status) {
+            case self::STATUS_NO_BRANCH:
+                if (!$nullOnNoBranch) {
+                    $msg = "Config branch '%s' does not exist.";
+                    throw new BranchNotFoundException(sprintf($msg, $branchName));
+                }
+                break;
+            case self::STATUS_NO_VALUE:
+                if (!$nullOnNotFound) {
+                    $msg = "Option '%s' does not exists or has not been set.";
+                    throw new ValueNotFoundException(sprintf($msg, $name));
+                }
+                break;
+            default:
+                throw new RuntimeException("Unexpected error");
+        }
+
+        return null;
     }
     /**
      * Setters
@@ -197,7 +217,7 @@ class ConfigTree
         foreach ($nodes as $node) {
             if (sizeof($nodes) !== $index) {
                 if (!array_key_exists($node, $branch)) {
-                    $msg = "Config branch '%s/%s' does not exist.";
+                    $msg = "Config branch '%s.%s' does not exist.";
                     throw new BranchNotFoundException(sprintf($msg, $branchName, $node));
                 }
                 /** @var array<string,mixed> $branch */
@@ -206,7 +226,7 @@ class ConfigTree
                 $branch[$node] = $value;
             }
             $index++;
-            $branchName = "$branchName/$node";
+            $branchName = "$branchName.$node";
         }
         if ($check) {
             $this->check();
