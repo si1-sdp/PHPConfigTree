@@ -83,6 +83,7 @@ class ConfigurationTreeTest extends TestCase
         $list = $ct->get('subtree2.list1');
         $this->assertEquals('b', $list[1]);
         $ct = ConfigTree::fromFile($this->testDataDir."testSchema.yaml", $this->testDataDir."testConfig.yaml");
+        /** @var array<mixed> $list */
         $list = $ct->get('subtree2.list1');
         $this->assertEquals('y', $list[1]);
     }
