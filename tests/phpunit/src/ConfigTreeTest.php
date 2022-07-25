@@ -60,7 +60,7 @@ class ConfigurationTreeTest extends TestCase
         } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertMatchesRegularExpression("/properties : NULL value found/", $msg);
+        $this->assertMatchesRegularExpression("/Bad schema : expecting attributes for property foo/", $msg);
         $msg = '';
         try {
             $ct = new ConfigTree("absentSchema.json");
@@ -99,7 +99,7 @@ class ConfigurationTreeTest extends TestCase
      */
     public function testGetOptions(): void
     {
-        $ct = new ConfigTree($this->testDataDir."testSchema.json");
+        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.json", []);
         $expectedOptions = [
             'boolean-prop1'          => false,
             'boolean-prop2'          => true,
@@ -120,7 +120,7 @@ class ConfigurationTreeTest extends TestCase
      */
     public function testGetSetMerge(): void
     {
-        $ct = new ConfigTree($this->testDataDir."testSchema.json");
+        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.json", []);
         // nominal case : merge exising options
         $this->assertEquals(false, $ct->get('boolean-prop1'));
         $this->assertEquals(0, $ct->get('subtree1.integer-prop1', ConfigTree::CREATE_BRANCH_ON_GET));
@@ -131,10 +131,10 @@ class ConfigurationTreeTest extends TestCase
         $msg = '';
         try {
             $ct->get('subtree2.subsubtree.string');
-        } catch (BranchNotFoundException $e) {
+        } catch (ValueNotFoundException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertEquals("Config branch 'subtree2' does not exist.", $msg);
+        $this->assertEquals("Option 'subtree2.subsubtree.string' does not exists or has not been set.", $msg);
         $msg = '';
         try {
             $ct->get('subtree2.subsubtree.string', ConfigTree::CREATE_BRANCH_ON_GET);
@@ -192,12 +192,7 @@ class ConfigurationTreeTest extends TestCase
     public function testPrint(): void
     {
         $ct = ConfigTree::fromFile($this->testDataDir."testSchema.yaml", $this->testDataDir."testConfig.yaml");
-        $output  = "boolean-prop1: true
-boolean-prop2: true
-integer-prop1: 10
-string-prop1: null
-string-prop2: 'blah blah'
-subtree1:
+        $output  = "subtree1:
   integer-prop1: 10
   string-prop1: info
 subtree2:
@@ -206,6 +201,11 @@ subtree2:
     - 'y'
     - z
   boolan-prop: false
+boolean-prop1: true
+boolean-prop2: true
+integer-prop1: 10
+string-prop1: null
+string-prop2: 'blah blah'
 ";
         $this->expectOutputString($output);
         $ct->print();
