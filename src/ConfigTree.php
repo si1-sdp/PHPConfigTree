@@ -353,8 +353,8 @@ class ConfigTree
     {
         if (is_object($value) && 'stdClass' === get_class($value)) {
             $array = [];
-            foreach (get_object_vars($value) as $key) {
-                $array[$key] = self::toArray($value->$key);
+            foreach ((array) $value as $key => $val) {
+                $array[$key] = self::toArray($val);
             }
 
             return $array;
