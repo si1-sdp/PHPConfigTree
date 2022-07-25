@@ -260,7 +260,7 @@ class ConfigTree
                 // status OK
         }
 
-        return $retValue;
+        return self::toArray($retValue);
     }
     /**
      * Setters
@@ -341,5 +341,25 @@ class ConfigTree
         }
 
         return $obj;
+    }
+    /**
+     * Traverse object tree and change every stdClass object to an associative array
+     *
+     * @param mixed $value
+     *
+     * @return mixed
+     */
+    private static function toArray($value)
+    {
+        if (is_object($value) && 'stdClass' === get_class($value)) {
+            $array = [];
+            foreach (get_object_vars($value) as $key) {
+                $array[$key] = self::toArray($value->$key);
+            }
+
+            return $array;
+        }
+
+        return $value;
     }
 }
