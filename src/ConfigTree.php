@@ -14,6 +14,8 @@ use DgfipSI1\ConfigTree\Exception\SchemaValidationException;
 use DgfipSI1\ConfigTree\Exception\BranchNotFoundException;
 use DgfipSI1\ConfigTree\Exception\RuntimeException;
 use DgfipSI1\ConfigTree\Exception\ValueNotFoundException;
+use JsonSchema\Constraints\Constraint;
+use Symfony\Component\Yaml\Exception\ParseException;
 
 /**
  * class RepoMirror
@@ -25,10 +27,14 @@ class ConfigTree
     protected const STATUS_NO_VALUE = 2;
     protected const STATUS_NO_BRANCH = 3;
 
-    /** @var array<string,mixed> */
-    protected $options = [];
+    public const NULL_ON_NO_BRANCH    = 1;
+    public const NULL_ON_NO_VALUE     = 2;
+    public const CREATE_BRANCH_ON_GET = 4;
 
-    /** @var array<string,mixed> */
+    /** @var \stdClass*/
+    protected $options;
+
+    /** @var mixed */
     protected $schema = null;
     /**
      * Constructor
@@ -42,21 +48,22 @@ class ConfigTree
         try {
             $schemaFileContent = file_get_contents($schemaFile);
         } catch (\exception $e) {
-            throw new SchemaValidationException(sprintf("Schema file not found : '%s'", $schemaFile));
+            throw new SchemaValidationException(sprintf("Error reading schema file '%s'", $schemaFile));
         }
         switch (pathinfo($schemaFile, PATHINFO_EXTENSION)) {
             case 'json':
-                $this->schema  = (array) json_decode("$schemaFileContent", true);
+                $this->schema  = json_decode("$schemaFileContent", true);
                 break;
             case 'yml':
             case 'yaml':
-                $this->schema  = (array) yaml::parseFile($schemaFile, yaml::DUMP_OBJECT_AS_MAP);
+                $this->schema  = yaml::parseFile($schemaFile, yaml::PARSE_OBJECT_FOR_MAP | yaml::PARSE_OBJECT);
                 break;
             default:
                 $msg = "Unsupported extension for : '%s'\nSupported schema types : yaml or json.";
                 throw new SchemaValidationException(sprintf($msg, $schemaFile));
         }
-        $this->options = $this->getDefaultOptions();
+        $this->options = new \stdClass();
+        $this->check(); // generate default options
     }
     /**
      * Build ConfigTree Object from flat array
@@ -85,45 +92,15 @@ class ConfigTree
     public static function fromFile($schemaFile, $configFile)
     {
         $instance = new self($schemaFile);
-        $config  = (array) yaml::parseFile($configFile);
+        try {
+            $config  = (array) yaml::parseFile($configFile, yaml::PARSE_OBJECT | yaml::PARSE_OBJECT_FOR_MAP);
+        } catch (ParseException $e) {
+            $error = "Exception parsing ".$e->getParsedFile()." at line ".$e->getParsedLine()." : ".$e->getSnippet();
+            throw new RuntimeException("$error");
+        }
         $instance->merge($config);
 
         return $instance;
-    }
-
-    /**
-     * Undocumented function
-     *
-     * @param array<string,mixed> $options
-     * @param array<string,mixed> $properties
-     *
-     * @return array<string,mixed>
-     */
-    public function getDefaultOptions(&$options = [], &$properties = null)
-    {
-        if (null === $properties) {
-            $properties = $this->schema['properties'];
-        }
-        if (!is_array($properties)) {
-            throw new SchemaValidationException('Bad schema : properties should be an array');
-        }
-        foreach ($properties as $key => $props) {
-            if (!is_array($props)) {
-                $msg = 'Bad schema : expecting attributes for property %s';
-                throw new SchemaValidationException(sprintf($msg, $key));
-            }
-            $type = $props['type'];
-            if (array_key_exists('default', $props)) {
-                $options[$key] = $this->getDefaultValue($type, $props['default']);
-            } elseif ('array' === $type) {
-                $options[$key] = [];
-            }
-            if (array_key_exists('properties', $props)) {
-                $this->getDefaultOptions($options[$key], $props['properties']);
-            }
-        }
-
-        return $options;
     }
     /**
      * Check properties against shema
@@ -132,54 +109,86 @@ class ConfigTree
      */
     public function check()
     {
-        $validator = new Validator();
-        $validator->check($this->options, $this->schema);
+        $validator      = new Validator();
+        $validatorError = "Validation error:\n";
+        try {
+            $validator->validate(
+                $this->options,
+                $this->schema,
+                Constraint::CHECK_MODE_APPLY_DEFAULTS |
+                Constraint::CHECK_MODE_TYPE_CAST |
+                Constraint::CHECK_MODE_COERCE_TYPES |
+                Constraint::CHECK_MODE_VALIDATE_SCHEMA
+            );
+        } catch (\Exception | \TypeError $e) {
+            $validatorError = sprintf('Validation error: %s\n', $e->getMessage());
+        }
+
         if (!$validator->isValid()) {
-            $errors = [];
             foreach ((array) $validator->getErrors() as $error) {
-                $errors[] = ($error['property'] ? $error['property'].' : ' : '').$error['message'];
+                $validatorError .= " - ".($error['property'] ? $error['property'].' : ' : '').$error['message']."\n";
             }
-            throw new SchemaValidationException('Validation error: config does not match schema.', $errors);
+            throw new SchemaValidationException($validatorError);
         }
 
         return true;
     }
     /**
+     * @return \stdClass
+     */
+    public function getOptions()
+    {
+        return $this->options;
+    }
+
+    /**
      * getters
      *
      * @param string  $name
-     * @param boolean $nullOnNotFound
-     * @param boolean $nullOnNoBranch
+     * @param integer $options
      *
      * @return mixed
      */
-    public function get($name, $nullOnNotFound = false, $nullOnNoBranch = false)
+    public function get($name, $options = 0)
     {
+
+        $nullOnNoBranch   = ($options & self::NULL_ON_NO_BRANCH)    === self::NULL_ON_NO_BRANCH;
+        $nullOnNoValue    = ($options & self::NULL_ON_NO_VALUE)     === self::NULL_ON_NO_VALUE;
+        $autoCreateBranch = ($options & self::CREATE_BRANCH_ON_GET) === self::CREATE_BRANCH_ON_GET;
+
         $branch = &$this->options;
         $nodes = explode('.', $name);
         $index = 1;
         $branchName = '';
-        $status = 0;
+        $status = self::STATUS_OK;
+        $retValue = null;
         foreach ($nodes as $node) {
             $branchName = "$branchName.$node";
-            if (!array_key_exists($node, $branch)) {
+            if (!property_exists($branch, $node)) {
                 // node not found, and whe're not at leaf yet => Branch not found
                 if (sizeof($nodes) !== $index) {
-                    $status = self::STATUS_NO_BRANCH;
+                    if ($autoCreateBranch) {
+                        $this->set(substr($branchName, 1), new \stdClass());
+                    } else {
+                        $status = self::STATUS_NO_BRANCH;
+                    }
                 } else {
                     $status = self::STATUS_NO_VALUE;
                 }
-                break;
+                if (self::STATUS_OK !== $status) {
+                    break;
+                }
             }
             if (sizeof($nodes) !== $index) {
                 $index++;
-                /** @var array<string,mixed> $branch */
-                $branch = &$branch[$node];
+                /** @var \stdClass $branch */
+                $branch = &$branch->$node;
             } else {
-                return $branch[$node];
+                $retValue = $branch->$node;
+                break;
             }
         }
-        /* if we did not return yet, it means we have an error  */
+        $branchName = substr($branchName, 1);
         switch ($status) {
             case self::STATUS_NO_BRANCH:
                 if (!$nullOnNoBranch) {
@@ -188,16 +197,16 @@ class ConfigTree
                 }
                 break;
             case self::STATUS_NO_VALUE:
-                if (!$nullOnNotFound) {
+                if (!$nullOnNoValue) {
                     $msg = "Option '%s' does not exists or has not been set.";
                     throw new ValueNotFoundException(sprintf($msg, $name));
                 }
                 break;
             default:
-                throw new RuntimeException("Unexpected error");
+                // status OK
         }
 
-        return null;
+        return $retValue;
     }
     /**
      * Setters
@@ -210,20 +219,23 @@ class ConfigTree
      */
     public function set($name, $value, $check = true)
     {
+        if (is_array($value) && !array_key_exists(0, $value)) {
+            $value = self::toObject($value);
+        }
         $branch = &$this->options;
         $nodes = explode('.', $name);
         $index = 1;
         $branchName = '';
         foreach ($nodes as $node) {
             if (sizeof($nodes) !== $index) {
-                if (!array_key_exists($node, $branch)) {
-                    $msg = "Config branch '%s.%s' does not exist.";
-                    throw new BranchNotFoundException(sprintf($msg, $branchName, $node));
+                /** @var \stdClass $branch */
+                if (!property_exists($branch, $node)) {
+                    $branch->$node = new \stdClass();
                 }
+                $branch = &$branch->$node;
                 /** @var array<string,mixed> $branch */
-                $branch = &$branch[$node];
             } else {
-                $branch[$node] = $value;
+                $branch->$node = $value;
             }
             $index++;
             $branchName = "$branchName.$node";
@@ -231,6 +243,7 @@ class ConfigTree
         if ($check) {
             $this->check();
         }
+
 
         return $this;
     }
@@ -244,43 +257,35 @@ class ConfigTree
     public function merge($options)
     {
         foreach ($options as $optName => $optValue) {
-            $this->set($optName, $optValue, false);
+            $this->set("$optName", $optValue, false);
         }
         $this->check();
     }
     /**
-     * Giving type and default string, return typed default value
+     * print configuration
      *
-     * @param string|array<string> $type
-     * @param string               $default
-     *
-     * @return mixed
+     * @return void
      */
-    protected function getDefaultValue($type, $default)
+    public function print()
     {
-        if (is_array($type)) {
-            $type = $type[0];
-        }
-        switch ($type) {
-            case 'string':
-                $value = $default;
-                break;
-            case 'null':
-                $value = null;
-                break;
-            case 'boolean':
-                $value = $default ? true : false;
-                break;
-            case 'integer':
-                $value = intval($default);
-                break;
-            case 'array':
-                $value = [];
-                break;
-            default:
-                throw new SchemaValidationException(sprintf("Unknown type : '%s'", $type));
+        $yaml = Yaml::dump($this->options, 6, 2, Yaml::DUMP_OBJECT_AS_MAP);
+        print $yaml;
+    }
+    /**
+     * Traverse tree and change every associative array to a stdClass with properties
+     * (we consider an array to be associative if array[0] does not exists)
+     *
+     * @param array<string,mixed> $array
+     *
+     * @return \stdClass
+     */
+    private static function toObject($array)
+    {
+        $obj = new \stdClass();
+        foreach ($array as $key => $value) {
+            $obj->$key = (is_array($value) && !array_key_exists(0, $value)) ? self::toObject($value) : $value;
         }
 
-        return $value;
+        return $obj;
     }
 }

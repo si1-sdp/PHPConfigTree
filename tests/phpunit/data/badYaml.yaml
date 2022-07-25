@@ -1,0 +1,4 @@
+---
+boolean-prop1: true
+    subtree1:
+  integer-prop1: 10

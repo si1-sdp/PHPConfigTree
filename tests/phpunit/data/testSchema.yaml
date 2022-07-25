@@ -1,7 +1,7 @@
 ---
 $schema: "http://json-schema.org/draft-04/schema#"
 name: Simple schema tester
-type: array
+type: object
 additionalProperties: false
 properties: 
   boolean-prop1:
@@ -10,7 +10,7 @@ properties:
     description: Sample boolean property whith default to false
   boolean-prop2:
     type: boolean
-    default: true,
+    default: true
     description: Sample boolean property whith default to true
   boolean-prop3:
     type: boolean
@@ -34,7 +34,7 @@ properties:
     type: [ "string", "null" ]
     description: Sample string property with no default
   subtree1:
-    type: array
+    type: object
     description: subtree1 options
     properties:
       integer-prop1:
@@ -52,7 +52,7 @@ properties:
         enum: [ 'emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug' ]
     additionalProperties": false
   subtree2:
-    type: array
+    type: object
     description: subtree2 options,
     properties:
       list1:
@@ -68,7 +68,7 @@ properties:
         description: should we do this ?
         default: false
       subsubtree:
-        type: array
+        type: object
         description: subsubtree options
         properties:
           string:
