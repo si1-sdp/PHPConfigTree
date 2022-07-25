@@ -34,7 +34,7 @@ class ConfigTree
     /** @var \stdClass*/
     protected $options;
 
-    /** @var mixed */
+    /** @var \stdClass */
     protected $schema = null;
     /**
      * Constructor
@@ -45,17 +45,21 @@ class ConfigTree
      */
     public function __construct($schemaFile)
     {
-        if (! is_readable($schemaFile) ) {
+        if (!is_readable($schemaFile)) {
             throw new SchemaValidationException(sprintf("Error reading schema file '%s'", $schemaFile));
         }
         switch (pathinfo($schemaFile, PATHINFO_EXTENSION)) {
             case 'json':
                 $schemaFileContent = file_get_contents($schemaFile);
-                $this->schema  = json_decode("$schemaFileContent");
+                /** @var \stdClass $schema */
+                $schema = json_decode("$schemaFileContent");
+                $this->schema  = $schema;
                 break;
             case 'yml':
             case 'yaml':
-                $this->schema  = yaml::parseFile($schemaFile, yaml::PARSE_OBJECT_FOR_MAP);
+                /** @var \stdClass $schema */
+                $schema  = yaml::parseFile($schemaFile, yaml::PARSE_OBJECT_FOR_MAP);
+                $this->schema  = $schema;
                 break;
             default:
                 $msg = "Unsupported extension for : '%s'\nSupported schema types : yaml or json.";
@@ -76,6 +80,7 @@ class ConfigTree
         $instance = new self($schemaFile);
         //$instance->print();
         $instance->merge($options);
+
         return $instance;
     }
 
@@ -100,6 +105,14 @@ class ConfigTree
 
         return $instance;
     }
+    /**
+     * parse schema to build a default tree
+     *
+     * @param \stdClass $options
+     * @param \stdClass $schemaProps
+     *
+     * @return \stdClass
+     */
     public function parseSchema(&$options = null, $schemaProps = null)
     {
         if (null === $options) {
@@ -108,7 +121,7 @@ class ConfigTree
         if (null === $schemaProps) {
             $schemaProps = $this->schema->properties;
         }
-        if (null === $schemaProps || 'stdClass' !== get_class($schemaProps) ) {
+        if (null === $schemaProps || 'stdClass' !== get_class($schemaProps)) {
             throw new SchemaValidationException("/Validation error:/ schema properties should be a stdClass object");
         }
         foreach ($schemaProps as $key => $props) {
@@ -117,29 +130,30 @@ class ConfigTree
                 throw new SchemaValidationException(sprintf($msg, $key));
             }
             if (property_exists($props, 'type') && 'object' === $props->type) {
-                $options->$key = new \stdClass;
-            } 
+                $options->$key = new \stdClass();
+            }
             if (property_exists($props, '$ref')) {
                 $name = '$ref';
                 $ref = $props->$name;
-                if (strpos($ref, '#') === false)  {
+                if (strpos($ref, '#') === false) {
                     throw new SchemaValidationException("Error parsing ref $ref");
                 }
                 $elements = explode('/', substr($ref, strpos($ref, '#')+2));
                 $root = $this->schema;
                 foreach ($elements as $path) {
-                    if (!property_exists($root, $path)) {    
-                        throw new SchemaValidationException("Can't locate ref $path in schema");    
+                    if (!property_exists($root, $path)) {
+                        throw new SchemaValidationException("Can't locate ref $path in schema");
                     }
                     $root = $root->$path;
                 }
-                $options->$key = new \stdClass;
+                $options->$key = new \stdClass();
                 $this->parseSchema($options->$key, $root->properties);
             }
             if (property_exists($props, 'properties')) {
                 $this->parseSchema($options->$key, $props->properties);
             }
         }
+
         return $options;
     }
     /**
