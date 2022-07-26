@@ -146,8 +146,10 @@ class ConfigTree
                     }
                     $root = $root->$path;
                 }
-                $options->$key = new \stdClass();
-                $this->parseSchema($options->$key, $root->properties);
+                if (property_exists($root, 'properties')) {
+                    $options->$key = new \stdClass();
+                    $this->parseSchema($options->$key, $root->properties);
+                }
             }
             if (property_exists($props, 'properties')) {
                 $this->parseSchema($options->$key, $props->properties);
