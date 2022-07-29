@@ -1,0 +1,19 @@
+---
+type: object
+additionalProperties: false
+properties: 
+  boolean-prop1:
+    type: boolean
+    default: false
+    description: Sample boolean property whith default to false
+  subtree1: 
+    type: object
+    properties:
+      integer-prop1:
+        type: integer
+        description: Sample integer property with default to 0
+        default: 0
+
+
+
+

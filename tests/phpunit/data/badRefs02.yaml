@@ -1,0 +1,46 @@
+---
+$schema: "http://json-schema.org/draft-04/schema#"
+name: Simple schema tester
+type: object
+additionalProperties: false
+properties: 
+  boolean-prop1:
+    type: boolean
+    default: false
+    description: Sample boolean property whith default to false
+  subtree1: 
+    type: object
+    additionalProperties: false
+    properties:
+      integer-prop1:
+        type: integer
+        description: Sample integer property with default to 0
+        default: 0
+      employee: { "$ref": "#/definitions/person" }
+  fruits:
+    type: array
+    default: []
+    description: list of fruits
+    minProperties: 0
+    additionalProperties:
+      type: [ "string", "boolean", "integer" ]
+      description: Variable value
+
+
+definitions:
+  address:
+    type: object
+    additionalProperties: false
+    required: [ 'zip-code' ],
+    properties:
+      street:
+        type: string
+      zip-code:
+        type: string
+        pattern: '^[0-9]{5}$'
+      city:
+        type: string
+      country:
+        type: string
+        default: France
+

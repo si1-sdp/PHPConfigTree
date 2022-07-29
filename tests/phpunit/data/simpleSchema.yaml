@@ -1,0 +1,69 @@
+---
+name: Simple schema tester
+type: object
+additionalProperties: false
+properties: 
+  cities : 
+    type: object
+    patternProperties: 
+      "^([A-Za-z0-9]+)$": 
+        type: object
+        properties:
+          location: { "$ref": "#/definitions/location" }
+    additionalProperties: false
+  employees:
+    type: object
+    properties:
+      boss: { "$ref": "#/definitions/person" }
+      chief: { "$ref": "#/definitions/person" }
+definitions:
+  location:
+    type: object
+    additionalProperties: false
+    properties:
+      latitude:
+        type: number
+        minimum: -90
+        maximum: 90
+      longitude:
+        type: number
+        minimum: -180
+        maximum: 180
+      altitude:
+        type: number
+        default: 0
+        minimum: 0
+  person:
+    type: object
+    additionalProperties: false
+    required: [ 'name' ],
+    properties:
+      name:
+        type: string
+        default: 'john'
+      first-name:
+        type: string
+      addresses: 
+        type: object
+        patternProperties: 
+           "^([a-z0-9]+)$": { "$ref": "#/definitions/address" }
+      noob:
+        type: boolean
+        default: true
+  address:
+    type: object
+    additionalProperties: false
+    required: [ 'zip-code' ],
+    properties:
+      street:
+        type: string
+      zip-code:
+        type: string
+        pattern: '^[0-9]{5}$'
+      city:
+        type: string
+      country:
+        type: string
+        default: France
+
+

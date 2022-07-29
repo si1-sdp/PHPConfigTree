@@ -78,7 +78,6 @@ class ConfigTree
     public static function fromArray($schemaFile, $options)
     {
         $instance = new self($schemaFile);
-        //$instance->print();
         $instance->merge($options);
 
         return $instance;
@@ -121,10 +120,10 @@ class ConfigTree
         if (null === $schemaProps) {
             $schemaProps = $this->schema->properties;
         }
-        if (null === $schemaProps || 'stdClass' !== get_class($schemaProps)) {
-            throw new SchemaValidationException("/Validation error:/ schema properties should be a stdClass object");
+        if (!(is_object($schemaProps) && 'stdClass' === get_class($schemaProps))) {
+            throw new SchemaValidationException("Validation error: schema properties should be a stdClass object");
         }
-        foreach ($schemaProps as $key => $props) {
+        foreach ((array) $schemaProps as $key => $props) {
             if (!is_object($props) || 'stdClass' !== get_class($props)) {
                 $msg = 'Bad schema : expecting attributes for property %s';
                 throw new SchemaValidationException(sprintf($msg, $key));
@@ -136,7 +135,8 @@ class ConfigTree
                 $name = '$ref';
                 $ref = $props->$name;
                 if (strpos($ref, '#') === false) {
-                    throw new SchemaValidationException("Error parsing ref $ref");
+                    $err = "Error parsing ref %s.  (nb: only local refs are supported right now)";
+                    throw new SchemaValidationException(sprintf($err, $ref));
                 }
                 $elements = explode('/', substr($ref, strpos($ref, '#')+2));
                 $root = $this->schema;
@@ -166,7 +166,6 @@ class ConfigTree
     public function check()
     {
         $validator      = new Validator();
-        $validatorError = "Validation error:\n";
         try {
             $validator->validate(
                 $this->options,
@@ -178,9 +177,11 @@ class ConfigTree
             );
         } catch (\Exception | \TypeError $e) {
             $validatorError = sprintf('Validation error: %s\n', $e->getMessage());
+            throw new SchemaValidationException($validatorError);
         }
 
         if (!$validator->isValid()) {
+            $validatorError = "Validation error:\n";
             foreach ((array) $validator->getErrors() as $error) {
                 $validatorError .= " - ".($error['property'] ? $error['property'].' : ' : '').$error['message']."\n";
             }
@@ -188,13 +189,6 @@ class ConfigTree
         }
 
         return true;
-    }
-    /**
-     * @return \stdClass
-     */
-    public function getOptions()
-    {
-        return $this->options;
     }
 
     /**
@@ -317,51 +311,63 @@ class ConfigTree
         }
         $this->check();
     }
+
     /**
      * print configuration
      *
-     * @return void
+     * @param bool $return If this parameter is set to true, print will return its output,
+     *                     instead of printing it (which it does by default).
+     *
+     * @return string|void
      */
-    public function print()
+    public function print($return = false)
     {
         $yaml = Yaml::dump($this->options, 6, 2, Yaml::DUMP_OBJECT_AS_MAP);
-        print $yaml;
+        if (!$return) {
+            print $yaml;
+        } else {
+            return $yaml;
+        }
     }
     /**
      * Traverse tree and change every associative array to a stdClass with properties
      * (we consider an array to be associative if array[0] does not exists)
      *
-     * @param array<string,mixed> $array
+     * @param mixed $item
      *
-     * @return \stdClass
+     * @return mixed
      */
-    private static function toObject($array)
+    private static function toObject($item)
     {
-        $obj = new \stdClass();
-        foreach ($array as $key => $value) {
-            $obj->$key = (is_array($value) && !array_key_exists(0, $value)) ? self::toObject($value) : $value;
+        if (is_array($item) && !array_key_exists(0, $item)) {
+            $obj = new \stdClass();
+            foreach ($item as $key => $value) {
+                $obj->$key = self::toObject($value);
+            }
+
+            return $obj;
         }
 
-        return $obj;
+        return $item;
     }
     /**
      * Traverse object tree and change every stdClass object to an associative array
      *
-     * @param mixed $value
+     * @param mixed $item
      *
      * @return mixed
      */
-    private static function toArray($value)
+    private static function toArray($item)
     {
-        if (is_object($value) && 'stdClass' === get_class($value)) {
+        if (is_object($item) && 'stdClass' === get_class($item)) {
             $array = [];
-            foreach ((array) $value as $key => $val) {
-                $array[$key] = self::toArray($val);
+            foreach ((array) $item as $key => $value) {
+                $array[$key] = self::toArray($value);
             }
 
             return $array;
         }
 
-        return $value;
+        return $item;
     }
 }

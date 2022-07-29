@@ -13,16 +13,23 @@ use DgfipSI1\ConfigTree\Exception\SchemaValidationException;
 use DgfipSI1\ConfigTree\Exception\ValueNotFoundException;
 use DgfipSI1\ConfigTree\Exception\BranchNotFoundException;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use RuntimeException;
 
 /**
- * @covers DgfipSI1\ConfigTree\ConfigTree
+ * @uses DgfipSI1\ConfigTree\ConfigTree
+ *
  * @covers DgfipSI1\ConfigTree\Exception\BranchNotFoundException
  * @covers DgfipSI1\ConfigTree\Exception\ValueNotFoundException
  * @covers DgfipSI1\ConfigTree\Exception\SchemaValidationException
  */
 class ConfigurationTreeTest extends TestCase
 {
+    protected const MARSEILLE   = [ 'location' => ['latitude' => 43.17, 'longitude' => 5.22 ]];
+    protected const PARIS       = [ 'location' => ['latitude' => 48.52, 'longitude' => 2.19 ]];
+    protected const EMPLOYEE    = "    addresses: {  }\n    name: john\n    noob: true\n";
+
+
     /** @var string */
     private $testDataDir;
     /** setup a VfsStream filesystem with /conf/satis_dgfip.yaml
@@ -35,32 +42,22 @@ class ConfigurationTreeTest extends TestCase
     {
         $this->testDataDir = __DIR__."/../data/";
     }
+
    /**
-     * Test execCommand method
-     *
+     * @covers DgfipSI1\ConfigTree\ConfigTree::__construct
+     * @covers DgfipSI1\ConfigTree\ConfigTree::fromArray
+     * @covers DgfipSI1\ConfigTree\ConfigTree::fromFile
      */
-    public function testConstructor(): void
+    public function testConstructors(): void
     {
         /** test yaml and json files for schema */
-        $ctJson = new ConfigTree($this->testDataDir."testSchema.json");
-        $ctYaml = new ConfigTree($this->testDataDir."testSchema.yaml");
-        $this->assertEquals($ctJson->getOptions(), $ctYaml->getOptions());
-        $ctYaml->check();
-        $ctJson->check();
-        /** test with bad schemas */
-        $msg = '';
-        try {
-            $ct = new ConfigTree($this->testDataDir."badSchema1.yaml");
-        } catch (SchemaValidationException $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertMatchesRegularExpression("/Validation error:/", $msg);
-        try {
-            $ct = new ConfigTree($this->testDataDir."badSchema2.yaml");
-        } catch (SchemaValidationException $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertMatchesRegularExpression("/Bad schema : expecting attributes for property foo/", $msg);
+        $class = new ReflectionClass('DgfipSI1\ConfigTree\ConfigTree');
+        $schema = $class->getProperty('schema');
+        $schema->setAccessible(true);
+        $ctJson = new ConfigTree($this->testDataDir."miniSchema.json");
+        $ctYaml = new ConfigTree($this->testDataDir."miniSchema.yaml");
+        $this->assertEquals($schema->getValue($ctJson), $schema->getValue($ctYaml));
+        /* test non existing file  */
         $msg = '';
         try {
             $ct = new ConfigTree("absentSchema.json");
@@ -68,146 +65,250 @@ class ConfigurationTreeTest extends TestCase
             $msg = $e->getMessage();
         }
         $this->assertEquals("Error reading schema file 'absentSchema.json'", $msg);
-        /** test unknown extension */
+        /* test with bad extension  */
         $msg = '';
         try {
-            $ctYaml = new ConfigTree($this->testDataDir."testSchema.foo");
+            $ct = new ConfigTree($this->testDataDir."testSchema.foo");
         } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
         $this->assertMatchesRegularExpression("/Unsupported extension/", $msg);
+
+        /* test fromArray */
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", []);
+        $this->assertNotEmpty($ct);
+
+        /* test fromFile */
+        $ct = ConfigTree::fromFile($this->testDataDir."simpleSchema.yaml", $this->testDataDir."testConfig.yaml");
+        /* test fromFile with bad file */
         $msg = '';
         try {
-            $ctYaml = ConfigTree::fromFile($this->testDataDir."testSchema.yaml", $this->testDataDir."badYaml.yaml");
-        } catch (RuntimeException $e) {
+            $ct = ConfigTree::fromFile($this->testDataDir."simpleSchema.yaml", $this->testDataDir."badYaml.yaml");
+        } catch (\Exception $e) {
             $msg = $e->getMessage();
         }
-        $this->assertMatchesRegularExpression("/Exception parsing/", $msg);
-
-        /** test with options schemas */
-        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.yaml", ['subtree2.list1' => ['a', 'b', 'c']]);
-        /** @var array<mixed> $list */
-        $list = $ct->get('subtree2.list1');
-        $this->assertEquals('b', $list[1]);
-        $ct = ConfigTree::fromFile($this->testDataDir."testSchema.yaml", $this->testDataDir."testConfig.yaml");
-        /** @var array<mixed> $list */
-        $list = $ct->get('subtree2.list1');
-        $this->assertEquals('y', $list[1]);
+        $this->assertMatchesRegularExpression('/Exception parsing/', $msg);
     }
    /**
-     * Test execCommand method
+     * @covers DgfipSI1\ConfigTree\ConfigTree::parseSchema
      */
-    public function testGetOptions(): void
+    public function testParseSchema(): void
     {
-        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.json", []);
-        $expectedOptions = [
-            'boolean-prop1'          => false,
-            'boolean-prop2'          => true,
-            'integer-prop1'          => 10,
-            'string-prop1'           => null,
-            'string-prop2'           => 'blah blah',
-            'subtree1.integer-prop1' => 0,
-            'subtree1.string-prop1'  => 'info',
-            'subtree2.list1'         => [],
-            'subtree2.boolan-prop'   => false,
-        ];
-        foreach ($expectedOptions as $key => $value) {
-            $this->assertEquals($value, $ct->get($key, ConfigTree::CREATE_BRANCH_ON_GET));
-        }
-    }
-    /**
-     * Test merge and check methods
-     */
-    public function testGetSetMerge(): void
-    {
-        $ct = ConfigTree::fromArray($this->testDataDir."testSchema.json", []);
-        // nominal case : merge exising options
-        $this->assertEquals(false, $ct->get('boolean-prop1'));
-        $this->assertEquals(0, $ct->get('subtree1.integer-prop1', ConfigTree::CREATE_BRANCH_ON_GET));
-        $ct->merge(['boolean-prop1' => true, 'subtree1.integer-prop1' => 100]);
-        $this->assertEquals(true, $ct->get('boolean-prop1'));
-        $this->assertEquals(100, $ct->get('subtree1.integer-prop1'));
-        // nominal case : get existing option with no default
+        $ct = new ConfigTree($this->testDataDir."simpleSchema.yaml");
+        $ct->check();
+        /** @var string */
+        $result = $ct->print(true);
+        $this->assertMatchesRegularExpression("/name: john/", $result);
+        /** tests with bad schema properties 1/2 */
         $msg = '';
         try {
-            $ct->get('subtree2.subsubtree.string');
-        } catch (ValueNotFoundException $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertEquals("Option 'subtree2.subsubtree.string' does not exists or has not been set.", $msg);
-        $msg = '';
-        try {
-            $ct->get('subtree2.subsubtree.string', ConfigTree::CREATE_BRANCH_ON_GET);
-            print "\nHERE !";
-        } catch (ValueNotFoundException $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertEquals("Option 'subtree2.subsubtree.string' does not exists or has not been set.", $msg);
-        $this->assertNull($ct->get('subtree2.subsubtree.string', ConfigTree::NULL_ON_NO_VALUE));
-
-        // nominal case : set option which had no default
-        $ct->set('subtree2.subsubtree.string', 'foo');
-        $this->assertEquals('foo', $ct->get('subtree2.subsubtree.string'));
-        // error case : get option in non existing branch
-        $msg = '';
-        try {
-            $ct->get('foo.bar.baz');
-        } catch (BranchNotFoundException $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertEquals("Config branch 'foo' does not exist.", $msg);
-        $this->assertNull($ct->get('foo.bar.baz', ConfigTree::NULL_ON_NO_BRANCH));
-
-        try {
-            $ct->get('subtree1.bar.baz');
-        } catch (BranchNotFoundException $e) {
-            $msg = $e->getMessage();
-        }
-        $this->assertEquals("Config branch 'subtree1.bar' does not exist.", $msg);
-        // error case : set option in non existing branch
-        try {
-            $ct->set('foo.bar.baz', 1);
+            $opts = new \stdClass();
+            /** @phpstan-ignore-next-line */
+            $ct->parseSchema($opts, 'foo');
         } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertMatchesRegularExpression("/The property foo is not defined/", $msg);
-        // error case : set non existing option : this time should fire a check exception
-        $errs = [];
+        $this->assertEquals('Validation error: schema properties should be a stdClass object', $msg);
+        /** tests with bad schema properties 2/2*/
+        $msg = '';
         try {
-            $ct->set('subtree', 1);
+            $opts = new \stdClass();
+            $props = new \stdClass();
+            $props->properties = 'foo';
+            $ct->parseSchema($opts, $props);
         } catch (SchemaValidationException $e) {
             $msg = $e->getMessage();
         }
-        $this->assertMatchesRegularExpression("/The property subtree is not defined and /", $msg);
-        // test setting with arrays
-        $ct = new ConfigTree($this->testDataDir."testSchema.json");
-        $ct->set('subtree1', [ 'integer-prop1' => 10, 'string-prop1' => 'alert',  'string-prop2' => 'info']);
-        $this->assertEquals('alert', $ct->get('subtree1.string-prop1'));
-        $this->assertEquals('info', $ct->get('subtree1.string-prop2'));
-        $this->assertEquals(10, $ct->get('subtree1.integer-prop1'));
+        $this->assertEquals('Bad schema : expecting attributes for property properties', $msg);
+        /** tests with bad refs properties 1/2 */
+        $msg = '';
+        try {
+            $ct = new ConfigTree($this->testDataDir."badRefs01.yaml");
+        } catch (SchemaValidationException $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertMatchesRegularExpression('#Error parsing ref /definitions/person#', $msg);
+        /** tests with bad refs properties 2/2 */
+        $msg = '';
+        try {
+            $ct = new ConfigTree($this->testDataDir."badRefs02.yaml");
+        } catch (SchemaValidationException $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertEquals("Can't locate ref person in schema", $msg);
     }
     /**
-     * Test print method
+     * @covers DgfipSI1\ConfigTree\ConfigTree::check
+     */
+    public function testCheck(): void
+    {
+        $msg = '';
+        try {
+            $ct = ConfigTree::fromArray($this->testDataDir."badSchema3.yaml", []);
+        } catch (SchemaValidationException $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertEquals('Validation error: object is an invalid type for foo\n', $msg);
+
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", []);
+        $msg = '';
+        try {
+            $ct->set('foo', 'bar');
+        } catch (SchemaValidationException $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertMatchesRegularExpression('/The property foo is not defined/', $msg);
+    }
+
+    /**
+     * @covers DgfipSI1\ConfigTree\ConfigTree::get
+    */
+    public function testGet(): void
+    {
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", []);
+        $ct->set('cities.Marseille', self::MARSEILLE);
+
+        /** test nominal case */
+        $this->assertEquals(43.17, $ct->get('cities.Marseille.location.latitude'));
+
+        /** test getting a value on a non existing branch */
+        /* NO OPTIONS => raise exception */
+        $ret = $this->safeGet($ct, 'cities.Paris.location.latitude');
+        $this->assertEquals("Config branch 'cities.Paris' does not exist.", $ret['err']);
+
+        /* NULL_ON_NO_BRANCH => return null */
+        $ret = $this->safeGet($ct, 'cities.Paris.location.latitude', ConfigTree::NULL_ON_NO_BRANCH);
+        $this->assertEmpty($ret['err']);
+        $this->assertNull($ret['value']);
+
+        /* CREATE_BRANCH => create branch on the fly
+        case 1 : default value exists  */
+        $ret = $this->safeGet($ct, 'cities.Paris.location.altitude', ConfigTree::CREATE_BRANCH_ON_GET);
+        $this->assertEquals('', $ret['err']);
+        $this->assertEquals(0, $ret['value']);
+        /* case 1 : default value does not exists  */
+        $ret = $this->safeGet($ct, 'cities.Lyon.location.latitude', ConfigTree::CREATE_BRANCH_ON_GET);
+        $this->assertNotEmpty($ret['err']);
+
+        /** test getting a non existing value */
+        $ret = $this->safeGet($ct, 'cities.Marseille.location.x');
+        $this->assertEquals("Option 'cities.Marseille.location.x' does not exists or has not been set.", $ret['err']);
+
+        $ret = $this->safeGet($ct, 'cities.Marseille.location.x', ConfigTree::NULL_ON_NO_VALUE);
+        $this->assertEquals('', $ret['err']);
+        $this->assertNull($ret['value']);
+    }
+
+
+    /**
+     * @covers DgfipSI1\ConfigTree\ConfigTree::set
+    */
+    public function testSet(): void
+    {
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", []);
+        $ct->set('cities.Marseille', self::MARSEILLE);
+        $this->assertEquals(43.17, $ct->get('cities.Marseille.location.latitude'));
+        $ct->set('cities.Marseille.location.latitude', 43);
+        $this->assertEquals(43, $ct->get('cities.Marseille.location.latitude'));
+
+        /* test on the fly creation of arborescence */
+        $ct->set('cities.Paris.location.latitude', 48);
+        $this->assertEquals(48, $ct->get('cities.Paris.location.latitude'));
+
+        /* test bad value with without check */
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", []);
+        $msg = '';
+        try {
+            $ct->set('cities', 1, false);
+        } catch (\Exception $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertEquals('', $msg);
+        /* test bad value with with check */
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", []);
+        $msg = '';
+        try {
+            $ct->set('cities', 1);
+        } catch (\Exception $e) {
+            $msg = $e->getMessage();
+        }
+        $this->assertMatchesRegularExpression('/cities : Integer value found/', $msg);
+    }
+    /**
+     * @covers DgfipSI1\ConfigTree\ConfigTree::merge
+    */
+    public function testMerge(): void
+    {
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", [ 'cities' => [ 'Paris' => self::PARIS]]);
+        $ct->merge(['cities.Marseille' => self::MARSEILLE]);
+        $result  = "cities:\n";
+        $result .= "  Paris:\n    location:\n      latitude: 48.52\n      longitude: 2.19\n      altitude: 0\n";
+        $result .= "  Marseille:\n    location:\n      latitude: 43.17\n      longitude: 5.22\n      altitude: 0\n";
+        $result .= "employees:\n  boss:\n".self::EMPLOYEE."  chief:\n".self::EMPLOYEE;
+        $this->assertEquals($result, $ct->print(true));
+    }
+
+    /**
+     * @covers DgfipSI1\ConfigTree\ConfigTree::print
      */
     public function testPrint(): void
     {
-        $ct = ConfigTree::fromFile($this->testDataDir."testSchema.yaml", $this->testDataDir."testConfig.yaml");
-        $output  = "subtree1:
-  integer-prop1: 10
-  string-prop1: info
-subtree2:
-  list1:
-    - x
-    - 'y'
-    - z
-  boolan-prop: false
-boolean-prop1: true
-boolean-prop2: true
-integer-prop1: 10
-string-prop1: null
-string-prop2: 'blah blah'
-";
+        $ct = ConfigTree::fromArray($this->testDataDir."simpleSchema.yaml", [ 'cities' => [ 'Paris' => []]]);
+        $output  = "cities:\n  Paris: {  }\n";
+        $output .= "employees:\n  boss:\n".self::EMPLOYEE."  chief:\n".self::EMPLOYEE;
+
         $this->expectOutputString($output);
         $ct->print();
+        $this->assertEquals($output, $ct->print(true));
+    }
+    /**
+     * @covers DgfipSI1\ConfigTree\ConfigTree::toObject
+     * @covers DgfipSI1\ConfigTree\ConfigTree::toArray
+     *
+     * @return void
+     */
+    public function testToObjectAndToArray(): void
+    {
+        $class = new ReflectionClass('DgfipSI1\ConfigTree\ConfigTree');
+        $toObject = $class->getMethod('toObject');
+        $toObject->setAccessible(true);
+        $toArray = $class->getMethod('toArray');
+        $toArray->setAccessible(true);
+
+        $obj = new \stdClass();
+        $obj->tree = new \stdClass();
+        $obj->tree->leaf = 'leaf-name';
+        $array = [ 'tree' => [ 'leaf' => 'leaf-name']];
+
+        /* test toArray() with object */
+        $this->assertEquals($array, $toArray->invokeArgs(null, [$obj]));
+        /* test toArray() with non object */
+        $this->assertEquals('foo', $toArray->invokeArgs(null, ['foo']));
+        /* test toObject() with array */
+        $this->assertEquals($obj, $toObject->invokeArgs(null, [$array]));
+        /* test toObject() with non object */
+        $this->assertEquals('foo', $toObject->invokeArgs(null, ['foo']));
+    }
+
+    /**
+     * safeGet() : launch a get() with all parameters, but catch exception and return it in ret[err]
+     *
+     * @param ConfigTree $ct
+     * @param string     $item
+     * @param integer    $options
+     *
+     * @return array<string,mixed>
+     */
+    protected function safeGet($ct, $item, $options = 0)
+    {
+        $msg = '';
+        $value = null;
+        try {
+            $value = $ct->get($item, $options);
+        } catch (\Exception $e) {
+            $msg = $e->getMessage();
+        }
+
+        return [ 'value' => $value, 'err' => $msg];
     }
 }
