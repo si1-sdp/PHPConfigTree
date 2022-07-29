@@ -31,7 +31,7 @@ definitions:
   address:
     type: object
     additionalProperties: false
-    required: [ 'zip-code' ],
+    required: [ 'zip-code' ]
     properties:
       street:
         type: string
