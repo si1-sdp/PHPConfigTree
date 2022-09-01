@@ -306,8 +306,10 @@ class ConfigTree
     */
     public function merge($options)
     {
-        foreach ($options as $optName => $optValue) {
-            $this->set("$optName", $optValue, false);
+        if (null !== $options) {
+            foreach ($options as $optName => $optValue) {
+                $this->set("$optName", $optValue, false);
+            }
         }
         $this->check();
     }
